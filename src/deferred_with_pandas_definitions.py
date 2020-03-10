@@ -4,11 +4,9 @@ Trying to recreate the deferred revenue waterfall using Pandas exclusively
 
 """
 
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
 
 def load_base_billings(filename, sheetname):
     """
@@ -41,7 +39,7 @@ def load_base_billings(filename, sheetname):
             print(a[item], end = " ")
     else:
         print('{} Currencies were removed'.format(sum(remove_these)))
-        for item in 
+        for item in
 
     for item in a:
         print(a[item], end = " ")
