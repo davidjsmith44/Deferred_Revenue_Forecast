@@ -10,7 +10,11 @@ import matplotlib.pyplot as plt
 
 """
 move to below later
-df = pd.read_excel("../data/old/base_billings.xlsx", sheet_name="bill_DC")
+#df = pd.read_excel("../data/old/base_billings.xlsx", sheet_name="bill_DC")
+
+filename = "../data/old/base_billings.xlsx"
+sheetname = 'bill_DC'
+df =load_base_billings(filename, sheetname)
 """
 
 
@@ -259,13 +263,11 @@ def clean_df_columns(df):
     return df
 
 
-df = clean_df_columns(df)
-
 """ Now working on the ZCC billings """
 df_cal = pd.read_excel("../data/old/ADOBE_FINANCIAL_CALENDAR.xlsx", "ADBE_cal")
 
 df_ZCC = pd.read_excel("../data/old/type_D_ZCC_billings.xlsx", sheet_name="DC")
-
+lauren
 df_ZCC.rename(
     index=str,
     columns={
