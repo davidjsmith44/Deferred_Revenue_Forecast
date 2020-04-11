@@ -71,7 +71,7 @@ def remove_infreq_curr(df, count_threshold=10):
     print("---Removing infrequent currencies from billings history---")
     print("Total number of currencies in the base billings file: ", len(vc))
     if len(model_dict["curr_removed"]) == 0:
-        print("No currencies were removed, all contained 10 or more billings")
+        print("No currencies were removed, all contained 10 or more billin`gs")
         print("Currencies in the base billings file")
         for item in a:
             print(a[item], end=" ")
@@ -393,9 +393,9 @@ list_columns = [
 ]
 
 
-df = merge_all_dataframes(list_df, list_columns)
+df_billings = merge_all_dataframes(list_df, list_columns)
 
-df = clean_df_columns(df)
+df_billings = clean_df_columns(df_billings)
 
 # ZCC BILLINGS
 # loading Adobe financial calendar and calculating period weeks
@@ -411,7 +411,7 @@ df_cal["period_match"] = (
     df_cal["Year"].astype(str) + "-" + df_cal["p2digit"].astype(str)
 )
 
-df_cal.drip(["p2digit"], axis=1, inplace=True)
+df_cal.drop(["p2digit"], axis=1, inplace=True)
 
 df_A = pd.read_excel("../data/all_billings_inputs.xlsx", sheet_name="type_A_no_config")
 
@@ -499,7 +499,7 @@ temp_flat_US.rename(
 
 # now merge the dataframes
 df_with_A = pd.merge(
-    df,
+    df_billings,
     temp_flat_DC,
     how="outer",
     left_on=["curr", "BU", "period"],
@@ -606,7 +606,7 @@ print(c)
 print(a + b)
 
 # now creating a dictionary that contains all of the input data we need
-df = df_with_all.copy()
+df_billings = df_with_all.copy()
 
 # currency map
 df_curr_map = pd.read_excel("../data/currency_map.xlsx", sheet_name="curr_map")
@@ -698,12 +698,12 @@ df_cal_2_merge.drop(
     axis=1,
     inplace=True,
 )
-df = df.merge(df_cal_2_merge, how="left", left_on="period", right_on="period_match")
-df.drop(["period_match", "_merge"], axis=1, inplace=True)
+df_billings = df_billings.merge(df_cal_2_merge, how="left", left_on="period", right_on="period_match")
+df_billings.drop(["period_match", "_merge"], axis=1, inplace=True)
 
 
 input_df_dict = {
-    "billings": df,
+    "billings": df_billings,
     "ADBE_cal": df_cal,
     "bookings": df_bookings,
     "FX_forwards": df_FX_fwds,
@@ -712,4 +712,74 @@ input_df_dict = {
 
 # pickle.dump(input_df_dict, open('../data/processed/all_inputs.p', 'wb'))
 
-df_billings = df.copy()
+'''
+This is where I am switching to the 'deferred_from_inputs' notebook
+'''
+# working on the bookings and changing that dataframe to contain bookings by period
+# in local currency
+
+
+# find the last period in the billings index
+last_period = '2020-03'
+
+list_BUs = df_bookings['BU'].unique()
+list_curr = df_bookings['Currency'].unique()
+
+
+# creating dataframe of zeros
+
+l_BU = []
+l_curr = []
+for BU in list_BUs:
+    for curr in list_curr:
+        l_BU.append(BU)
+        l_curr.append(curr)
+
+
+l_zero = np.zeros(len(l_BU))
+data= {'BU':l_BU, 'curr':l_curr,
+      'Q1':l_zero,
+      'Q2':l_zero,
+      'Q3':l_zero,
+      'Q4':l_zero,
+      'P01':l_zero,
+      'P02':l_zero,
+      'P03':l_zero,
+      'P04':l_zero,
+      'P05':l_zero,
+      'P06':l_zero,
+      'P07':l_zero,
+       'P08':l_zero,
+       'P09':l_zero,
+       'P10':l_zero,
+       'P11':l_zero,
+       'P12':l_zero,
+      }
+
+df_book_period=pd.DataFrame(data)
+
+# fill in the quarters
+for i in range(len(df_book_period['BU'])):
+
+    this_BU = df_book_period['BU'][i]
+    this_curr = df_book_period['curr'][i]
+    this_slice = df_bookings[(df_bookings['BU']==this_BU)&
+                          (df_bookings['Currency']==this_curr)]
+
+    this_Q1= this_slice[this_slice['Quarter']=='Q1 2020']
+    sum_Q1 = this_Q1['US_amount'].sum()
+    df_book_period['Q1'].loc[i]=sum_Q1
+
+    this_Q2= this_slice[this_slice['Quarter']=='Q2 2020']
+    sum_Q2 = this_Q2['US_amount'].sum()
+    df_book_period['Q2'].loc[i]=sum_Q2
+
+    this_Q3= this_slice[this_slice['Quarter']=='Q4 2020']
+    sum_Q3 = this_Q3['US_amount'].sum()
+    df_book_period['Q3'].loc[i]=sum_Q3
+
+    this_Q4= this_slice[this_slice['Quarter']=='Q4 2020']
+    sum_Q4 = this_Q4['US_amount'].sum()
+    df_book_period['Q4'].loc[i]=sum_Q4
+
+
