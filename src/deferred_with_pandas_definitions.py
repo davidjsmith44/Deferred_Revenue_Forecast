@@ -267,7 +267,7 @@ def clean_df_columns(df):
 df_cal = pd.read_excel("../data/old/ADOBE_FINANCIAL_CALENDAR.xlsx", "ADBE_cal")
 
 df_ZCC = pd.read_excel("../data/old/type_D_ZCC_billings.xlsx", sheet_name="DC")
-lauren
+
 df_ZCC.rename(
     index=str,
     columns={
