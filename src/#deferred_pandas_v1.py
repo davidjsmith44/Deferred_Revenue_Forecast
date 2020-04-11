@@ -702,7 +702,6 @@ df = df.merge(df_cal_2_merge, how="left", left_on="period", right_on="period_mat
 df.drop(["period_match", "_merge"], axis=1, inplace=True)
 
 
-
 input_df_dict = {
     "billings": df,
     "ADBE_cal": df_cal,
