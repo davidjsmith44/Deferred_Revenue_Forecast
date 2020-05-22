@@ -24,9 +24,13 @@ df = pd.concat([df_billings, df_fcst], join="outer", ignore_index=True)
 df = df.fillna(0)
 df.sort_values(by=["curr", "BU", "period"], inplace=True)
 
-print("historical billings length: ", len(df_billings))
-print("forecast length: ", len(df_fcst))
-print("combined length: ", len(df))
+df_wf = import_thing["wf"]
+# print("historical billings length: ", len(df_billings))
+# print("forecast length: ", len(df_fcst))
+# print("combined length: ", len(df))
+# print("length of df_wf: ", len(df_wf))
+# print(df_wf.columns)
+# print(df_wf.head(10))
 
 list_currencies = df["curr"].unique()
 list_BUs = df["BU"].unique()
@@ -185,7 +189,59 @@ app.layout = html.Div(
                         ),
                     ],
                 ),
-                dcc.Tab(label="Deferred Revenue Forecast", children=[]),
+                dcc.Tab(
+                    label="Deferred Revenue Forecast",
+                    children=[
+                        html.Div(
+                            [
+                                dcc.Dropdown(
+                                    id="currency_WF",
+                                    options=[
+                                        {"label": i, "value": i}
+                                        for i in list_currencies
+                                    ],
+                                    value="USD",
+                                ),
+                                dcc.RadioItems(
+                                    id="BU_WF",
+                                    options=[
+                                        {"label": i, "value": i} for i in list_BUs
+                                    ],
+                                    value="Creative",
+                                    labelStyle={"display": "inline-block"},
+                                ),
+                            ],
+                            style={"width": "48%", "display": "inline-block"},
+                        ),
+                        html.Div(
+                            [
+                                html.Div(
+                                    dcc.Graph(id="this_waterfall"),
+                                    className="twelve columns",
+                                ),
+                            ],
+                            className="row",
+                        ),
+                        html.Div(
+                            [
+                                html.Div(
+                                    dcc.Graph(id="BU_waterfall"),
+                                    className="tweleve columns",
+                                ),
+                            ],
+                            className="row",
+                        ),
+                        html.Div(
+                            [
+                                html.Div(
+                                    dcc.Graph(id="total_waterfall"),
+                                    className="twelve columns",
+                                ),
+                            ],
+                            className="row",
+                        ),
+                    ],
+                ),
             ]
         ),
     ]
@@ -463,6 +519,7 @@ def update_all_graphs_DC(currency_value, BU_value):
         ),
     }
 
+
 @app.callback(
     Output("deferred_3Y_US", "figure"),
     [Input("currency_US", "value"), Input("BU_US", "value")],
@@ -730,6 +787,106 @@ def update_all_graphs_US(currency_value, BU_value):
             transition={"duration": 500, "easing": "cubic-in-out"},
             title="All Deferred Billings",
             barmode="stack",
+            hovermode="closest",
+        ),
+    }
+
+
+@app.callback(
+    Output("this_waterfall", "figure"),
+    [Input("currency_WF", "value"), Input("BU_WF", "value")],
+)
+def update_this_waterfall(currency_value, BU_value):
+    df_wff = df_wf[(df_wf["BU"] == BU_value) & (df_wf["curr"] == currency_value)]
+    colors = ["cornflowerblue"] * len(df_wff)
+    y_title = "Deferred Balance in USD"
+    return {
+        "data": [
+            {
+                "x": df_wff["period"],
+                "y": df_wff["Total"],
+                "type": "bar",
+                "marker": {"color": colors},
+                "name": "Total Deferred Balance",
+            },
+        ],
+        "layout": dict(
+            xaxis={"title": "Fiscal Period"},
+            yaxis={"title": y_title},
+            transition={"duration": 500, "easing": "cubic-in-out"},
+            legend=dict(x=0.1, y=0.9),
+            title="Deferred Balance in USD for billings in "
+            + str(currency_value)
+            + " from "
+            + str(BU_value),
+            hovermode="closest",
+        ),
+    }
+
+
+@app.callback(
+    Output("BU_waterfall", "figure"),
+    [Input("currency_WF", "value"), Input("BU_WF", "value")],
+)
+def update_BU_waterfall(currency_value, BU_value):
+    df_wff = df_wf.drop(["curr"], axis=1)
+    df_wf2 = df_wff[df_wff["BU"] == BU_value]
+    print("I am in update_BU_waterfall")
+    print(df_wf2.head(10))
+    df_wf3 = df_wf2.groupby(["period"]).sum()
+    # need to groupby here
+
+    colors = ["cornflowerblue"] * len(df_wf3)
+    y_title = "Deferred Balance in USD"
+    return {
+        "data": [
+            {
+                # "x": df_wf3["period"],
+                "y": df_wf3["Total"],
+                "type": "bar",
+                "marker": {"color": colors},
+                "name": "Deferred Balance in USD for " + str(BU_value) + ".",
+            },
+        ],
+        "layout": dict(
+            xaxis={"title": "Fiscal Period"},
+            yaxis={"title": y_title},
+            transition={"duration": 500, "easing": "cubic-in-out"},
+            legend=dict(x=0.1, y=0.9),
+            title="Deferred Balance in USD for "
+            + str(BU_value)
+            + " billings in all currencies.",
+            hovermode="closest",
+        ),
+    }
+
+
+@app.callback(
+    Output("total_waterfall", "figure"),
+    [Input("currency_WF", "value"), Input("BU_WF", "value")],
+)
+def update_total_waterfall(currency_value, BU_value):
+    df_wff = df_wf.drop(columns=["curr", "BU"], axis=1)
+    df_wff = df_wff.groupby(["period"]).agg("sum")
+    # need to do a groupby here
+    colors = ["cornflowerblue"] * len(df_wff)
+    y_title = "Deferred Balance in USD"
+    return {
+        "data": [
+            {
+                # "x": df_wff["period"],
+                "y": df_wff["Total"],
+                "type": "bar",
+                "marker": {"color": colors},
+                "name": y_title,
+            },
+        ],
+        "layout": dict(
+            xaxis={"title": "Fiscal Period"},
+            yaxis={"title": y_title},
+            transition={"duration": 500, "easing": "cubic-in-out"},
+            legend=dict(x=0.1, y=0.9),
+            title="Deferred Balance in USD for all Adobe",
             hovermode="closest",
         ),
     }
