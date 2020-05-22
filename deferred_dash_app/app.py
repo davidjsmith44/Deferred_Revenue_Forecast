@@ -1,7 +1,7 @@
 """ app.py """
 
 ### Data
-import pandas as import pd
+import pandas as pd
 import pickle
 
 #Graphing

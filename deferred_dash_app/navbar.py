@@ -11,10 +11,10 @@ def Navbar():
                 in_navbar=True,
                 label="Menu",
                 children=[
-                    dbc.DropdownMenuItem("Entry 1"),
-                    dbc.DropdownMenuItem("Entry 2"),
+                    dbc.DropdownMenuItem("Document Currency Billings"),
+                    dbc.DropdownMenuItem("US Eqivalent of Billings"),
                     dbc.DropdownMenuItem(divider=True),
-                    dbc.DropdownMenuItem("Entry 3"),
+                    dbc.DropdownMenuItem("Deferred Revenue"),
                 ],
             ),
         ],
