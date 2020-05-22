@@ -39,17 +39,17 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 app.layout = html.Div(
     [
-        html.H4(children="Deferred Revenue Forecast"),
+        html.H4(children="Deferred Revenue Forecast", style={"text-align": "center"}),
         dcc.Tabs(
             [
-                dcc.Tab(label="Sunburst Charts", childeren=[]),
+                dcc.Tab(label="Sunburst Charts", children=[]),
                 dcc.Tab(
                     label="Document Currency Billings",
-                    childern=[
+                    children=[
                         html.Div(
                             [
                                 dcc.Dropdown(
-                                    id="currency",
+                                    id="currency_DC",
                                     options=[
                                         {"label": i, "value": i}
                                         for i in list_currencies
@@ -57,7 +57,7 @@ app.layout = html.Div(
                                     value="USD",
                                 ),
                                 dcc.RadioItems(
-                                    id="BU",
+                                    id="BU_DC",
                                     options=[
                                         {"label": i, "value": i} for i in list_BUs
                                     ],
@@ -70,21 +70,12 @@ app.layout = html.Div(
                         html.Div(
                             [
                                 html.Div(
-                                    dcc.Graph(id="deferred_1Y"), className="six columns"
+                                    dcc.Graph(id="deferred_1Y_DC"),
+                                    className="six columns",
                                 ),
                                 html.Div(
-                                    dcc.Graph(id="deferred_1M"), className="six columns"
-                                ),
-                            ],
-                            className="row",
-                        ),
-                        html.Div(
-                            [
-                                html.Div(
-                                    dcc.Graph(id="deferred_2Y"), className="six columns"
-                                ),
-                                html.Div(
-                                    dcc.Graph(id="deferred_6M"), className="six columns"
+                                    dcc.Graph(id="deferred_1M_DC"),
+                                    className="six columns",
                                 ),
                             ],
                             className="row",
@@ -92,22 +83,108 @@ app.layout = html.Div(
                         html.Div(
                             [
                                 html.Div(
-                                    dcc.Graph(id="deferred_3Y"), className="six columns"
+                                    dcc.Graph(id="deferred_2Y_DC"),
+                                    className="six columns",
                                 ),
                                 html.Div(
-                                    dcc.Graph(id="deferred_3M"), className="six columns"
+                                    dcc.Graph(id="deferred_6M_DC"),
+                                    className="six columns",
+                                ),
+                            ],
+                            className="row",
+                        ),
+                        html.Div(
+                            [
+                                html.Div(
+                                    dcc.Graph(id="deferred_3Y_DC"),
+                                    className="six columns",
+                                ),
+                                html.Div(
+                                    dcc.Graph(id="deferred_3M_DC"),
+                                    className="six columns",
                                 ),
                             ],
                             className="row",
                         ),
                         html.Div(
                             html.Div(
-                                dcc.Graph(id="deferred_all"), className="twelve columns"
+                                dcc.Graph(id="deferred_all_DC"),
+                                className="twelve columns",
                             )
                         ),
                     ],
                 ),
-                dcc.Tab(label="USD Equivalent Billings", children=[]),
+                dcc.Tab(
+                    label="USD Equivalent Billings",
+                    children=[
+                        html.Div(
+                            [
+                                dcc.Dropdown(
+                                    id="currency_US",
+                                    options=[
+                                        {"label": i, "value": i}
+                                        for i in list_currencies
+                                    ],
+                                    value="USD",
+                                ),
+                                dcc.RadioItems(
+                                    id="BU_US",
+                                    options=[
+                                        {"label": i, "value": i} for i in list_BUs
+                                    ],
+                                    value="Creative",
+                                    labelStyle={"display": "inline-block"},
+                                ),
+                            ],
+                            style={"width": "48%", "display": "inline-block"},
+                        ),
+                        html.Div(
+                            [
+                                html.Div(
+                                    dcc.Graph(id="deferred_1Y_US"),
+                                    className="six columns",
+                                ),
+                                html.Div(
+                                    dcc.Graph(id="deferred_1M_US"),
+                                    className="six columns",
+                                ),
+                            ],
+                            className="row",
+                        ),
+                        html.Div(
+                            [
+                                html.Div(
+                                    dcc.Graph(id="deferred_2Y_US"),
+                                    className="six columns",
+                                ),
+                                html.Div(
+                                    dcc.Graph(id="deferred_6M_US"),
+                                    className="six columns",
+                                ),
+                            ],
+                            className="row",
+                        ),
+                        html.Div(
+                            [
+                                html.Div(
+                                    dcc.Graph(id="deferred_3Y_US"),
+                                    className="six columns",
+                                ),
+                                html.Div(
+                                    dcc.Graph(id="deferred_3M_US"),
+                                    className="six columns",
+                                ),
+                            ],
+                            className="row",
+                        ),
+                        html.Div(
+                            html.Div(
+                                dcc.Graph(id="deferred_all_US"),
+                                className="twelve columns",
+                            )
+                        ),
+                    ],
+                ),
                 dcc.Tab(label="Deferred Revenue Forecast", children=[]),
             ]
         ),
@@ -116,9 +193,10 @@ app.layout = html.Div(
 
 
 @app.callback(
-    Output("deferred_3Y", "figure"), [Input("currency", "value"), Input("BU", "value")],
+    Output("deferred_3Y_DC", "figure"),
+    [Input("currency_DC", "value"), Input("BU_DC", "value")],
 )
-def update_3Y_graph(currency_value, BU_value):
+def update_3Y_graph_DC(currency_value, BU_value):
     dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
     this_length = len(dff)
     colors = ["lightgrey"] * len(dff)
@@ -147,9 +225,10 @@ def update_3Y_graph(currency_value, BU_value):
 
 
 @app.callback(
-    Output("deferred_2Y", "figure"), [Input("currency", "value"), Input("BU", "value")],
+    Output("deferred_2Y_DC", "figure"),
+    [Input("currency_DC", "value"), Input("BU_DC", "value")],
 )
-def update_2Y_graph(currency_value, BU_value):
+def update_2Y_graph_DC(currency_value, BU_value):
     dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
     this_length = len(dff)
     colors = ["burlywood"] * len(dff)
@@ -183,9 +262,10 @@ def update_2Y_graph(currency_value, BU_value):
 
 
 @app.callback(
-    Output("deferred_1Y", "figure"), [Input("currency", "value"), Input("BU", "value")],
+    Output("deferred_1Y_DC", "figure"),
+    [Input("currency_DC", "value"), Input("BU_DC", "value")],
 )
-def update_1Y_graph(currency_value, BU_value):
+def update_1Y_graph_DC(currency_value, BU_value):
     dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
     this_length = len(dff)
     colors = ["darkgreen"] * len(dff)
@@ -214,9 +294,10 @@ def update_1Y_graph(currency_value, BU_value):
 
 
 @app.callback(
-    Output("deferred_6M", "figure"), [Input("currency", "value"), Input("BU", "value")],
+    Output("deferred_6M_DC", "figure"),
+    [Input("currency_DC", "value"), Input("BU_DC", "value")],
 )
-def update_6M_graph(currency_value, BU_value):
+def update_6M_graph_DC(currency_value, BU_value):
     dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
     this_length = len(dff)
     colors = ["salmon"] * len(dff)
@@ -245,9 +326,10 @@ def update_6M_graph(currency_value, BU_value):
 
 
 @app.callback(
-    Output("deferred_3M", "figure"), [Input("currency", "value"), Input("BU", "value")],
+    Output("deferred_3M_DC", "figure"),
+    [Input("currency_DC", "value"), Input("BU_DC", "value")],
 )
-def update_3M_graph(currency_value, BU_value):
+def update_3M_graph_DC(currency_value, BU_value):
     dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
     colors = ["darkviolet"] * len(dff)
     this_length = len(dff["period"])
@@ -276,9 +358,10 @@ def update_3M_graph(currency_value, BU_value):
 
 
 @app.callback(
-    Output("deferred_1M", "figure"), [Input("currency", "value"), Input("BU", "value")]
+    Output("deferred_1M_DC", "figure"),
+    [Input("currency_DC", "value"), Input("BU_DC", "value")],
 )
-def update_1M_graph(currency_value, BU_value):
+def update_1M_graph_DC(currency_value, BU_value):
     dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
     colors = ["cornflowerblue"] * len(dff)
     y_title = "Monthly Billings in " + str(currency_value)
@@ -313,10 +396,10 @@ def update_1M_graph(currency_value, BU_value):
 
 
 @app.callback(
-    Output("deferred_all", "figure"),
-    [Input("currency", "value"), Input("BU", "value")],
+    Output("deferred_all_DC", "figure"),
+    [Input("currency_DC", "value"), Input("BU_DC", "value")],
 )
-def update_all_graphs(currency_value, BU_value):
+def update_all_graphs_DC(currency_value, BU_value):
     dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
     return {
         "data": [
@@ -365,6 +448,277 @@ def update_all_graphs(currency_value, BU_value):
             {
                 "x": dff["period"].to_list(),
                 "y": dff["deferred_B_DC"].to_list(),
+                "type": "bar",
+                "marker": {"color": "yellow"},
+                "name": "service",
+            },
+        ],
+        "layout": dict(
+            xaxis={"title": "Fiscal Period"},
+            yaxis={"title": "All Deferred Billings"},
+            transition={"duration": 500, "easing": "cubic-in-out"},
+            title="All Deferred Billings",
+            barmode="stack",
+            hovermode="closest",
+        ),
+    }
+
+@app.callback(
+    Output("deferred_3Y_US", "figure"),
+    [Input("currency_US", "value"), Input("BU_US", "value")],
+)
+def update_3Y_graph_US(currency_value, BU_value):
+    dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
+    this_length = len(dff)
+    colors = ["lightgrey"] * len(dff)
+    change_list = np.arange(this_length - 48, this_length - 36)
+    for item in change_list:
+        colors[item] = "dimgrey"
+    y_title = "USD Eqivalent 3 Year Billings from " + str(currency_value)
+    return {
+        "data": [
+            {
+                "x": dff["period"].to_list(),
+                "y": dff["deferred_3Y_US"].to_list(),
+                "type": "bar",
+                "marker": {"color": colors},
+                "name": "Deferred Billings with 3 year Billings",
+            }
+        ],
+        "layout": dict(
+            xaxis={"title": "Fiscal Period"},
+            yaxis={"title": y_title},
+            transition={"duration": 500, "easing": "cubic-in-out"},
+            title="3 Year Billing Cycle",
+            hovermode="closest",
+        ),
+    }
+
+
+@app.callback(
+    Output("deferred_2Y_US", "figure"),
+    [Input("currency_US", "value"), Input("BU_US", "value")],
+)
+def update_2Y_graph_US(currency_value, BU_value):
+    dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
+    this_length = len(dff)
+    colors = ["burlywood"] * len(dff)
+    line_colors = ["burlywood"] * len(dff)
+    change_list = np.arange(this_length - 36, this_length - 24)
+    for item in change_list:
+        colors[item] = "chocolate"
+    line_change_list = np.arange(this_length - 11, this_length)
+    for item in line_change_list:
+        line_colors[item] = "chocolate"
+    y_title = "USD Equivalent if 2 Year Billings in " + str(currency_value)
+    return {
+        "data": [
+            {
+                "x": dff["period"],
+                "y": dff["deferred_2Y_US"],
+                "type": "bar",
+                "marker": {"color": colors},
+                "marker_line": {"color": line_colors},
+                "name": "Is this working",
+            }
+        ],
+        "layout": dict(
+            xaxis={"title": "Fiscal Period"},
+            yaxis={"title": y_title},
+            transition={"duration": 500, "easing": "cubic-in-out"},
+            title="2 Year Billings Cycle",
+            hovermode="closest",
+        ),
+    }
+
+
+@app.callback(
+    Output("deferred_1Y_US", "figure"),
+    [Input("currency_US", "value"), Input("BU_US", "value")],
+)
+def update_1Y_graph_US(currency_value, BU_value):
+    dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
+    this_length = len(dff)
+    colors = ["darkgreen"] * len(dff)
+    change_list = np.arange(this_length - 24, this_length - 12)
+    for item in change_list:
+        colors[item] = "lightgreen"
+    y_title = "Annual Billings in " + str(currency_value)
+    return {
+        "data": [
+            {
+                "x": dff["period"],
+                "y": dff["deferred_1Y_US"],
+                "type": "bar",
+                "marker": {"color": colors},
+                "name": "Deferred Annual Billings",
+            }
+        ],
+        "layout": dict(
+            xaxis={"title": "Fiscal Period"},
+            yaxis={"title": y_title},
+            transition={"duration": 500, "easing": "cubic-in-out"},
+            title="Annual Billing Cycle",
+            hovermode="closest",
+        ),
+    }
+
+
+@app.callback(
+    Output("deferred_6M_US", "figure"),
+    [Input("currency_US", "value"), Input("BU_US", "value")],
+)
+def update_6M_graph_US(currency_value, BU_value):
+    dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
+    this_length = len(dff)
+    colors = ["salmon"] * len(dff)
+    change_list = np.arange(this_length - 18, this_length - 12)
+    for item in change_list:
+        colors[item] = "crimson"
+    y_title = "Semi-Annual Billings in " + str(currency_value)
+    return {
+        "data": [
+            {
+                "x": dff["period"],
+                "y": dff["deferred_6M_US"],
+                "type": "bar",
+                "marker": {"color": colors},
+                "name": "Deferred Semi-Annual Billings",
+            }
+        ],
+        "layout": dict(
+            xaxis={"title": "Fiscal Period"},
+            yaxis={"title": y_title},
+            transition={"duration": 500, "easing": "cubic-in-out"},
+            title="Semi-Annual Billings",
+            hovermode="closest",
+        ),
+    }
+
+
+@app.callback(
+    Output("deferred_3M_US", "figure"),
+    [Input("currency_US", "value"), Input("BU_US", "value")],
+)
+def update_3M_graph_US(currency_value, BU_value):
+    dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
+    colors = ["darkviolet"] * len(dff)
+    this_length = len(dff["period"])
+    change_list = np.arange(this_length - 15, this_length - 12)
+    for item in change_list:
+        colors[item] = "violet"
+    y_title = "USD Equivalent of Quarterly Billings in " + str(currency_value)
+    return {
+        "data": [
+            {
+                "x": dff["period"],
+                "y": dff["deferred_3M_US"],
+                "type": "bar",
+                "marker": {"color": colors},
+                "name": "Deferred Quarterly Billings",
+            }
+        ],
+        "layout": dict(
+            xaxis={"title": "Fiscal Period"},
+            yaxis={"title": y_title},
+            transition={"duration": 500, "easing": "cubic-in-out"},
+            title="Quarterly Billings",
+            hovermode="closest",
+        ),
+    }
+
+
+@app.callback(
+    Output("deferred_1M_US", "figure"),
+    [Input("currency_US", "value"), Input("BU_US", "value")],
+)
+def update_1M_graph_US(currency_value, BU_value):
+    dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
+    colors = ["cornflowerblue"] * len(dff)
+    y_title = "Monthly Billings in " + str(currency_value)
+    return {
+        "data": [
+            {
+                "x": dff["period"],
+                "y": dff["deferred_1M_US"],
+                "type": "bar",
+                "marker": {"color": colors},
+                "name": "Deferred Monthly Billings",
+            },
+            {
+                "x": dff["period"],
+                "y": dff["monthly_periods"],
+                "type": "line",
+                "marker_color": "purple",
+                "name": "Weekly Avg",
+                "seconday_y": True,
+                "range": [0, dff["monthly_periods"].max()],
+            },
+        ],
+        "layout": dict(
+            xaxis={"title": "Fiscal Period"},
+            yaxis={"title": y_title},
+            transition={"duration": 500, "easing": "cubic-in-out"},
+            legend=dict(x=0.1, y=0.9),
+            title="Monthly Billings",
+            hovermode="closest",
+        ),
+    }
+
+
+@app.callback(
+    Output("deferred_all_US", "figure"),
+    [Input("currency_US", "value"), Input("BU_US", "value")],
+)
+def update_all_graphs_US(currency_value, BU_value):
+    dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
+    return {
+        "data": [
+            {
+                "x": dff["period"].to_list(),
+                "y": dff["deferred_3Y_US"].to_list(),
+                "type": "bar",
+                "marker": {"color": "dimgrey"},
+                "name": "3 year",
+            },
+            {
+                "x": dff["period"].to_list(),
+                "y": dff["deferred_2Y_US"].to_list(),
+                "type": "bar",
+                "marker": {"color": "burleywood"},
+                "name": "2 year",
+            },
+            {
+                "x": dff["period"].to_list(),
+                "y": dff["deferred_1Y_US"].to_list(),
+                "type": "bar",
+                "marker": {"color": "darkgreen"},
+                "name": "1 year",
+            },
+            {
+                "x": dff["period"].to_list(),
+                "y": dff["deferred_6M_US"].to_list(),
+                "type": "bar",
+                "marker": {"color": "salmon"},
+                "name": "6 month",
+            },
+            {
+                "x": dff["period"].to_list(),
+                "y": dff["deferred_3M_US"].to_list(),
+                "type": "bar",
+                "marker": {"color": "darkviolet"},
+                "name": "quarterly",
+            },
+            {
+                "x": dff["period"].to_list(),
+                "y": dff["deferred_1M_US"].to_list(),
+                "type": "bar",
+                "marker": {"color": "cornflowerblue"},
+                "name": "monthly",
+            },
+            {
+                "x": dff["period"].to_list(),
+                "y": dff["deferred_B_US"].to_list(),
                 "type": "bar",
                 "marker": {"color": "yellow"},
                 "name": "service",
