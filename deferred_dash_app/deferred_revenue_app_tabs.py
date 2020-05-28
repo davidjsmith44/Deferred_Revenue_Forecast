@@ -5,7 +5,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
-
+import plotly.express as px
 import pandas as pd
 import numpy as np
 import pickle
@@ -25,16 +25,89 @@ df = df.fillna(0)
 df.sort_values(by=["curr", "BU", "period"], inplace=True)
 
 df_wf = import_thing["wf"]
-# print("historical billings length: ", len(df_billings))
-# print("forecast length: ", len(df_fcst))
-# print("combined length: ", len(df))
-# print("length of df_wf: ", len(df_wf))
-# print(df_wf.columns)
-# print(df_wf.head(10))
-
 list_currencies = df["curr"].unique()
 list_BUs = df["BU"].unique()
 df["monthly_periods"] = df["deferred_1M_DC"] / df["Period_Weeks"]
+
+# Functions for the sunburst charts
+def create_curr_pct_by_BU(df):
+
+    df_sum = (
+        df.groupby(["BU", "curr"]).agg({"Val": "sum"}).add_suffix("_Sum").reset_index()
+    )
+    df_sum.set_index(["BU", "curr"], inplace=True)
+
+    df = df.join(df_sum, on=["BU", "curr"], how="outer")
+    df["type_pct_curr_BU"] = df["Val"] / df["Val_Sum"]
+    df.drop("Val_Sum", axis=1, inplace=True)
+    return df
+
+
+def create_BU_pct(df):
+    df2 = df.groupby(["BU", "curr"]).agg({"Val": "sum"})
+
+    df_sum = df.groupby(["BU"]).agg({"Val": "sum"}).add_suffix("_Sum").reset_index()
+    df_sum["BU_pct"] = df_sum["Val_Sum"] / sum(df_sum["Val_Sum"])
+
+    df2 = df2.join(df_sum.set_index("BU"))
+
+    df2["curr_pct_BU"] = df2["Val"] / df2["Val_Sum"]
+    df2.drop(["Val_Sum", "Val"], axis=1, inplace=True)
+
+    df = df.join(df2, on=["BU", "curr"], how="outer")
+
+    return df
+
+
+def calculate_percentages(df):
+    df2 = create_BU_pct(df)
+
+    df3 = create_curr_pct_by_BU(df2)
+
+    return df3
+
+
+def process_sunburst_dataframes(df):
+
+    df_2019 = df[df["period"].str.match("2019")]
+    df2 = (
+        df_2019.set_index(["BU", "curr", "period"])
+        .stack()
+        .reset_index(name="Val")
+        .rename(columns={"level_1": "X"})
+    )
+
+    df_2019_US = df2[df2["level_3"].str.contains("_US")].copy()
+    df_2019_US["curr"] = df_2019_US["curr"].astype("string")
+    df_2019_US["BU"] = df_2019_US["BU"].astype("string")
+    df_2019_US["period"] = df_2019_US["period"].astype("string")
+    df_2019_US["level_3"] = df_2019_US["level_3"].astype("string")
+    df_2019_US.rename(columns={"level_3": "type"}, inplace=True)
+
+    # possibly remove period and sum all others
+    df_2019_gb = df_2019_US.groupby(["BU", "curr", "type"]).sum()
+    df_2019_gb = df_2019_gb[df_2019_gb["Val"] > 0]
+
+    df = df_2019_gb.copy()
+
+    df = calculate_percentages(df)
+    df = df.reset_index()
+
+    return df
+
+
+df_sb = process_sunburst_dataframes(df)
+fig_sb = px.sunburst(
+    df_sb,
+    path=["BU", "curr", "type"],
+    values="Val",
+    color="Val",
+    hover_data=["BU_pct"],
+    color_continuous_scale="Twilight",
+)
+# controlling the minimum text size
+fig_sb.update_layout(uniformtext=dict(minsize=8, mode="hide"))
+fig_sb.update_layout(margin=dict(t=0, l=0, r=0, b=0))
 
 
 # adding the app itself (all dash apps will havae this line of code. It initiates the code)
@@ -46,7 +119,16 @@ app.layout = html.Div(
         html.H4(children="Deferred Revenue Forecast", style={"text-align": "center"}),
         dcc.Tabs(
             [
-                dcc.Tab(label="Sunburst Charts", children=[]),
+                dcc.Tab(
+                    label="Sunburst Charts",
+                    children=[
+                        html.Div(
+                            html.Div(
+                                dcc.Graph(figure=fig_sb), className="twelve columns",
+                            )
+                        )
+                    ],
+                ),
                 dcc.Tab(
                     label="Document Currency Billings",
                     children=[
