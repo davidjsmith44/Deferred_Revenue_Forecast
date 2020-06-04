@@ -510,6 +510,7 @@ def update_3M_graph_DC(currency_value, BU_value):
 def update_1M_graph_DC(currency_value, BU_value):
     dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
     colors = ["cornflowerblue"] * len(dff)
+    y_2_range = [0, dff["monthly_periods"].max() ]
     y_title = "Monthly Billings in " + str(currency_value)
     return {
         "data": [
@@ -519,6 +520,7 @@ def update_1M_graph_DC(currency_value, BU_value):
                 "type": "bar",
                 "marker": {"color": colors},
                 "name": "Deferred Monthly Billings",
+                "yaxis": "y",
             },
             {
                 "x": dff["period"],
@@ -527,12 +529,17 @@ def update_1M_graph_DC(currency_value, BU_value):
                 "marker_color": "purple",
                 "name": "Weekly Avg",
                 "seconday_y": True,
-                "range": [0, dff["monthly_periods"].max()],
+                "yaxis": "y2",
             },
         ],
         "layout": dict(
             xaxis={"title": "Fiscal Period"},
             yaxis={"title": y_title},
+            yaxis2={"title": "Weekly Avg.",
+                    "overlaying": "y",
+                    "side":"right",
+                    "anchor":"x",
+                    "range": "[0, max(y2)]"},
             transition={"duration": 500, "easing": "cubic-in-out"},
             legend=dict(x=0.1, y=0.9),
             title="Monthly Billings",
