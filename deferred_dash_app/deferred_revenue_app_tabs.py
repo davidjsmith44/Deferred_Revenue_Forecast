@@ -14,7 +14,7 @@ import pickle
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
 # loading up my data from deferred revenue
-import_thing = pickle.load(open("data/final_forecast.p", "rb"))
+import_thing = pickle.load(open("data/processed/final_forecast.p", "rb"))
 df_fcst = import_thing["forecast"]
 df_billings = import_thing["billings"]
 df_billings["is_forecast"] = 0
@@ -116,17 +116,25 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 app.layout = html.Div(
     [
-        html.H4(children="Deferred Revenue Forecast", style={"text-align": "center"}),
+        html.H2(children="Deferred Revenue Forecast", style={"text-align": "center"}),
         dcc.Tabs(
             [
                 dcc.Tab(
                     label="Sunburst Charts",
                     children=[
                         html.Div(
+                            [
+                                html.H4(
+                                    children="USD Equivalent of 2019 Billings by Enterprice BU, Document Currency and Rebill Frequency",
+                                    style={"text-align": "center"},
+                                ),
+                            ]
+                        ),
+                        html.Div(
                             html.Div(
                                 dcc.Graph(figure=fig_sb), className="twelve columns",
                             )
-                        )
+                        ),
                     ],
                 ),
                 dcc.Tab(
