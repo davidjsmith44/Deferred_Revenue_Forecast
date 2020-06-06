@@ -15,15 +15,7 @@ external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
 # loading up my data from deferred revenue
 import_thing = pickle.load(open("data/processed/final_forecast.p", "rb"))
-df_fcst = import_thing["forecast"]
-df_billings = import_thing["billings"]
-df_billings["is_forecast"] = 0
-df_fcst["is_forecast"] = 1
-
-df = pd.concat([df_billings, df_fcst], join="outer", ignore_index=True)
-df = df.fillna(0)
-df.sort_values(by=["curr", "BU", "period"], inplace=True)
-
+df = import_thing["final"]
 df_wf = import_thing["wf"]
 list_currencies = df["curr"].unique()
 list_BUs = df["BU"].unique()
@@ -69,7 +61,7 @@ def calculate_percentages(df):
 
 def process_sunburst_dataframes(df):
 
-    df_2019 = df[df["period"].str.match("2019")]
+    df_2019 = df[df["period"].str.match("2020")]
     df2 = (
         df_2019.set_index(["BU", "curr", "period"])
         .stack()
@@ -125,7 +117,7 @@ app.layout = html.Div(
                         html.Div(
                             [
                                 html.H4(
-                                    children="USD Equivalent of 2019 Billings by Enterprice BU, Document Currency and Rebill Frequency",
+                                    children="USD Equivalent of 2020 Billings by Enterprice BU, Document Currency and Rebill Frequency",
                                     style={"text-align": "center"},
                                 ),
                             ]
