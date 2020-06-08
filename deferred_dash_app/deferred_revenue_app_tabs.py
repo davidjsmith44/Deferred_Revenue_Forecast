@@ -16,7 +16,7 @@ external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 # loading up my data from deferred revenue
 import_thing = pickle.load(open("data/processed/final_forecast.p", "rb"))
 df = import_thing["final"]
-df_wf = import_thing["wf"]
+# df_wf = import_thing["wf"]
 list_currencies = df["curr"].unique()
 list_BUs = df["BU"].unique()
 df["monthly_periods"] = df["deferred_1M_DC"] / df["Period_Weeks"]
@@ -419,11 +419,19 @@ def update_1Y_graph_DC(currency_value, BU_value):
                 "type": "bar",
                 "marker": {"color": colors},
                 "name": "Deferred Annual Billings",
-            }
+            },
+            {
+                "x": dff["period"],
+                "y": dff["book_1Y_DC"],
+                "type": "bar",
+                "marker": {"color": "black"},
+                "name": "Bookings",
+            },
         ],
         "layout": dict(
             xaxis={"title": "Fiscal Period"},
             yaxis={"title": y_title},
+            barmode="stack",
             transition={"duration": 500, "easing": "cubic-in-out"},
             title="Annual Billing Cycle",
             hovermode="closest",
@@ -599,6 +607,13 @@ def update_all_graphs_DC(currency_value, BU_value):
                 "marker": {"color": "yellow"},
                 "name": "service",
             },
+            {
+                "x": dff["period"].to_list(),
+                "y": dff["book_1Y_DC"].to_list(),
+                "type": "bar",
+                "marker": {"color": "black"},
+                "name": "Net New Bookings",
+            },
         ],
         "layout": dict(
             xaxis={"title": "Fiscal Period"},
@@ -700,11 +715,19 @@ def update_1Y_graph_US(currency_value, BU_value):
                 "type": "bar",
                 "marker": {"color": colors},
                 "name": "Deferred Annual Billings",
-            }
+            },
+            {
+                "x": dff["period"],
+                "y": dff["book_1Y_US"],
+                "type": "bar",
+                "marker": {"color": "black"},
+                "name": "Bookings",
+            },
         ],
         "layout": dict(
             xaxis={"title": "Fiscal Period"},
             yaxis={"title": y_title},
+            barmode="stack",
             transition={"duration": 500, "easing": "cubic-in-out"},
             title="Annual Billing Cycle",
             hovermode="closest",
@@ -871,6 +894,13 @@ def update_all_graphs_US(currency_value, BU_value):
                 "marker": {"color": "yellow"},
                 "name": "service",
             },
+            {
+                "x": dff["period"].to_list(),
+                "y": dff["book_1Y_US"].to_list(),
+                "type": "bar",
+                "marker": {"color": "black"},
+                "name": "Net New Bookings",
+            },
         ],
         "layout": dict(
             xaxis={"title": "Fiscal Period"},
@@ -883,6 +913,7 @@ def update_all_graphs_US(currency_value, BU_value):
     }
 
 
+"""
 @app.callback(
     Output("this_waterfall", "figure"),
     [Input("currency_WF", "value"), Input("BU_WF", "value")],
@@ -981,7 +1012,7 @@ def update_total_waterfall(currency_value, BU_value):
             hovermode="closest",
         ),
     }
-
+"""
 
 if __name__ == "__main__":
     app.run_server(debug=True)

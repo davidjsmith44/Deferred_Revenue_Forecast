@@ -2042,20 +2042,6 @@ print(dc/us)
 
 
 
-df_final.columns
-
-
-
-
-
-
-
-df_final.sample(10)
-
-
-
-
-
 
 df_billings['is_forecast']= 0
 df_fcst['is_forecast']=1
