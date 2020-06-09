@@ -14,9 +14,9 @@ import pickle
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
 # loading up my data from deferred revenue
-import_thing = pickle.load(open("data/processed/final_forecast.p", "rb"))
+import_thing = pickle.load(open("data/processed/final_forecast_2.p", "rb"))
 df = import_thing["final"]
-# df_wf = import_thing["wf"]
+df_wf = import_thing["waterfall"]
 list_currencies = df["curr"].unique()
 list_BUs = df["BU"].unique()
 df["monthly_periods"] = df["deferred_1M_DC"] / df["Period_Weeks"]
