@@ -210,8 +210,8 @@ app.layout = html.Div(
                                     options=[
                                         {"label": i, "value": i} for i in list_BUs
                                     ],
-                                    value=['Creative', 'Document Cloud'],
-                                    labelStyle={"display": "inline-block"}
+                                    value=["Creative", "Document Cloud"],
+                                    labelStyle={"display": "inline-block"},
                                 )
                             ],
                             style={"width": "48%", "display": "inline-block"},
@@ -327,7 +327,7 @@ app.layout = html.Div(
     [Input("currency_DC", "value"), Input("BU_DC", "value")],
 )
 def update_3Y_graph_DC(currency_value, BU_value):
-    dff = df[(df["BU"]==BU_value) & (df["curr"] == currency_value)]
+    dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
     this_length = len(dff)
     colors = ["lightgrey"] * len(dff)
     change_list = np.arange(this_length - 48, this_length - 36)
@@ -619,12 +619,11 @@ def update_all_graphs_DC(currency_value, BU_value):
 
 
 @app.callback(
-    Output("deferred_3Y_US", "figure"),
-    [Input("BU_US", "value")],
+    Output("deferred_3Y_US", "figure"), [Input("BU_US", "value")],
 )
 def update_3Y_graph_US(BU_value):
     dff = df[df["BU"].isin(BU_value)]
-    dff = dff.groupby('period').sum()
+    dff = dff.groupby("period").sum()
     this_length = len(dff)
     colors = ["lightgrey"] * len(dff)
     change_list = np.arange(this_length - 48, this_length - 36)
@@ -652,12 +651,11 @@ def update_3Y_graph_US(BU_value):
 
 
 @app.callback(
-    Output("deferred_2Y_US", "figure"),
-    [Input("BU_US", "value")],
+    Output("deferred_2Y_US", "figure"), [Input("BU_US", "value")],
 )
 def update_2Y_graph_US(BU_value):
     dff = df[df["BU"].isin(BU_value)]
-    dff = dff.groupby('period').sum()
+    dff = dff.groupby("period").sum()
     this_length = len(dff)
     colors = ["burlywood"] * len(dff)
     line_colors = ["burlywood"] * len(dff)
@@ -690,12 +688,11 @@ def update_2Y_graph_US(BU_value):
 
 
 @app.callback(
-    Output("deferred_1Y_US", "figure"),
-    [Input("BU_US", "value")],
+    Output("deferred_1Y_US", "figure"), [Input("BU_US", "value")],
 )
 def update_1Y_graph_US(BU_value):
     dff = df[df["BU"].isin(BU_value)]
-    dff = dff.groupby('period').sum()
+    dff = dff.groupby("period").sum()
     this_length = len(dff)
     colors = ["darkgreen"] * len(dff)
     change_list = np.arange(this_length - 24, this_length - 12)
@@ -731,12 +728,11 @@ def update_1Y_graph_US(BU_value):
 
 
 @app.callback(
-    Output("deferred_6M_US", "figure"),
-    [Input("BU_US", "value")],
+    Output("deferred_6M_US", "figure"), [Input("BU_US", "value")],
 )
 def update_6M_graph_US(BU_value):
     dff = df[df["BU"].isin(BU_value)]
-    dff = dff.groupby('period').sum()
+    dff = dff.groupby("period").sum()
     this_length = len(dff)
     colors = ["salmon"] * len(dff)
     change_list = np.arange(this_length - 18, this_length - 12)
@@ -764,8 +760,7 @@ def update_6M_graph_US(BU_value):
 
 
 @app.callback(
-    Output("deferred_3M_US", "figure"),
-    [Input("BU_US", "value")],
+    Output("deferred_3M_US", "figure"), [Input("BU_US", "value")],
 )
 def update_3M_graph_US(BU_value):
     dff = df[df["BU"].isin(BU_value)]
@@ -797,8 +792,7 @@ def update_3M_graph_US(BU_value):
 
 
 @app.callback(
-    Output("deferred_1M_US", "figure"),
-    [Input("BU_US", "value")],
+    Output("deferred_1M_US", "figure"), [Input("BU_US", "value")],
 )
 def update_1M_graph_US(BU_value):
     dff = df[df["BU"].isin(BU_value)]
@@ -827,12 +821,11 @@ def update_1M_graph_US(BU_value):
 
 
 @app.callback(
-    Output("deferred_all_US", "figure"),
-    [Input("BU_US", "value")],
+    Output("deferred_all_US", "figure"), [Input("BU_US", "value")],
 )
 def update_all_graphs_US(BU_value):
     dff = df[df["BU"].isin(BU_value)]
-    dff = dff.groupby('period').sum()
+    dff = dff.groupby("period").sum()
     return {
         "data": [
             {
