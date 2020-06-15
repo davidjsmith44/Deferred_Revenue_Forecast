@@ -48,8 +48,6 @@ df = pd.read_excel(
 
 # ###### Changing the column names early since they are inconsistent across other reports
 
-# In[3]:
-
 
 df.rename(
     index=str,
@@ -85,8 +83,7 @@ df.rename(
 # ### Filtering out any currency that has  < 20 transactions.
 # ###### To see the list of currencies and how any times they appear in the billings database remove the # before the print(vc) statement
 # We have started selling in many new currencies over the last few years.
-
-# In[5]:
+:
 
 
 # creates a list of the currencies and the number of transactions for each currency
@@ -101,8 +98,7 @@ a = keep_curr.index
 
 
 # #### Just keeping track of the currencies we removed in our model_dict data structure
-
-# In[6]:
+In[6]:
 
 
 remove_these = vc[vc.values <= 20].index
@@ -118,8 +114,6 @@ print(model_dict)
 #  - TRY (Turkish Lira)
 #
 #  Below we are adding the Turkish Lira to our list of currencies that should be removed from the dataframe
-
-# In[7]:
 
 
 if "TRY" not in model_dict["curr_removed"]:
@@ -158,8 +152,6 @@ df = df[df["DC_amount"] != 0]
 print("This is the length of the dataframe after removing zeros: ", len(df))
 
 
-# In[11]:
-
 
 df.head(10)
 # df.tail(10)
@@ -169,13 +161,8 @@ df.head(10)
 # #### Clearing out the Non-Revenue billings from the file
 #
 
-# In[12]:
-
-
 df["Sales Type"].value_counts()
 
-
-# In[13]:
 
 
 print("Length of the dataframe before removing non-revenue billings: ", len(df))
@@ -250,15 +237,10 @@ gb_svc.head(15)
 # Type B billings are service agreements that will have invoices submitted before the billings are reclassified to revenue. If no invoices are assigned to the billings, the billings become revenue in 12 months. Since these billings do not have a contract that will renew in the future, there is no need to model a rebillings of these service based billings (for purposes of modeling Deferred Revenue). We do need to forecast how the existing type B billings amortize to revenue and how any new service billings are booked to deferred.
 #
 
-# In[20]:
-
 
 dfr_b = dfr[dfr["rev_req_type"] == "B"].copy()
 gb_b = dfr_b.groupby(["curr", "BU", "period"], as_index=False).sum()
 gb_b.drop(labels="Subscription Term", axis=1, inplace=True)
-
-
-# In[21]:
 
 
 gb_b.head(20)
@@ -279,8 +261,6 @@ gb_b.head(20)
 # To fix this, we need to load up a different file and determine the length of the sales contract (type A no config)
 #
 
-# In[22]:
-
 
 dfr_a = dfr[dfr["rev_req_type"] == "A"].copy()
 
@@ -288,15 +268,10 @@ gb_a = dfr_a.groupby(["curr", "BU", "period", "config"], as_index=False).sum()
 gb_a.drop(labels="Subscription Term", axis=1, inplace=True)
 
 
-# In[23]:
-
-
 # gb_a.head(20)
 # gb_a.tail(20)
 # gb_a.sample(20)
 
-
-# In[24]:
 
 
 gb_a["config"].value_counts()
@@ -304,16 +279,11 @@ gb_a["config"].value_counts()
 
 # #### Below is just a check to see how large the billing types are across all periods
 
-# In[25]:
-
-
 gb_a_config = gb_a.groupby(["config"], as_index=False).sum()
 gb_a_config
 
 
 # ###### These 'OCONS', 'OENSV', 'ONORE' and 'OUNIV' config types are not actual product config IDs so we have to get them from a different data file. We are excluding these types below.
-
-# In[26]:
 
 
 config_list = ["1Y", "2Y", "3Y", "MTHLY"]
@@ -323,16 +293,11 @@ gb_a_config = gb_a[gb_a["config"].isin(config_list)]
 # ###### Grouping by the config type into gb_a_1Y, gb_a_2Y, gb_a_3y, gb_a_1M dataframes
 #
 
-# In[27]:
-
-
 gb_a_1Y = gb_a_config[gb_a_config["config"] == "1Y"].copy()
 gb_a_2Y = gb_a_config[gb_a_config["config"] == "2Y"].copy()
 gb_a_3Y = gb_a_config[gb_a_config["config"] == "3Y"].copy()
 gb_a_1M = gb_a_config[gb_a_config["config"] == "MTHLY"].copy()
 
-
-# In[28]:
 
 
 print("this is the lenght of type A 1M billings: ", len(gb_a_1M))
@@ -340,8 +305,6 @@ print("this is the lenght of type A 1Y billings: ", len(gb_a_1Y))
 print("this is the lenght of type A 2Y billings: ", len(gb_a_2Y))
 print("this is the lenght of type A 3Y billings: ", len(gb_a_3Y))
 
-
-# In[29]:
 
 
 # gb_a_2Y.head(5)
@@ -361,8 +324,6 @@ print("this is the lenght of type A 3Y billings: ", len(gb_a_3Y))
 #
 #  We also need to track the type D billings that do not have a 'Rule for Bill Date'
 
-# In[30]:
-
 
 dfr_d = dfr[dfr["rev_req_type"] == "D"].copy()
 
@@ -370,16 +331,11 @@ gb_d = dfr_d.groupby(["curr", "BU", "period", "rebill_rule"], as_index=False).su
 gb_d.drop(labels="Subscription Term", axis=1, inplace=True)
 
 
-# In[31]:
-
 
 gb_d["rebill_rule"].value_counts()
 
 
 # ###### Grouping these by rebill rule and incorporating rebill rules that have the same rebill period
-
-# In[32]:
-
 
 gb_d_mthly = gb_d[gb_d["rebill_rule"].isin(["Y1", "Y2", "Y3", "YM"])].copy()
 gb_d_mthly.drop(labels="rebill_rule", axis=1, inplace=True)
@@ -402,15 +358,9 @@ gb_d_two_yrs = gb_d[gb_d["rebill_rule"] == "Y4"]
 gb_d_three_yrs = gb_d[gb_d["rebill_rule"] == "Y7"]
 
 
-# In[33]:
-
-
 # gb_d_qtrly.head(10)
 # gb_d_annual.tail(10)
 # gb_d_three_yrs.head(10)
-
-
-# In[34]:
 
 
 print("Length of monthly", len(gb_d_mthly))
@@ -440,8 +390,6 @@ print("Length of three years", len(gb_d_three_yrs))
 
 # ###### Below uses functions to merge a list of dataframes and move billings amounts to the correct category based on rebill frequency and type
 #
-
-# In[35]:
 
 
 list_df = [
@@ -477,7 +425,6 @@ list_columns = [
 ]
 
 
-# In[36]:
 
 
 def sum_USD_amt(list_df, list_columns):
