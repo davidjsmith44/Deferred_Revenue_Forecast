@@ -32,22 +32,24 @@ import pickle
 from math import ceil
 from sklearn.linear_model import LinearRegression
 from scipy.interpolate import interp1d, griddata
+import logging
+
+logger = logging.getLogger("deferred_logger")
+logger.setLevel("DEBUG")
+logging.basicConfig(
+    filename="example.log",
+    level=logging.DEBUG,
+    format="[%(filename)s:%(lineno)s - %(funcName)15s()] %(message)s",
+)
 
 
 # ## Step 1: Processing Base Billings Data
-#
-# The billings data comes from tableau and is saved in a file "all_billings_inputs.xlsx" with two sheets of information
-#
-# "base_billings"
-# Contains the basic information about all of the billings
+logger.debug("Processing the Base Billings Data")
 
 df = pd.read_excel(
     "../data/Data_2020_P06/all_billings_inputs.xlsx", sheet_name="base_billings"
 )
-
-
-# ###### Changing the column names early since they are inconsistent across other reports
-
+###### Changing the column names early since they are inconsistent across other reports
 
 df.rename(
     index=str,
@@ -63,114 +65,61 @@ df.rename(
     },
     inplace=True,
 )
+logger.debug(f" df_columns = {df.columns}")
 
-
-# ### To inspect the dataframe we just loaded, you can remove the '#' symbol from the rows below. The # symbol makes the line of code a comment (so the program will not read and execute that line of code). Removing the # will make the line executable and display the results
-#
-# The df.head(5) command will show the first 5 rows of the billings dataframe. To run this, simply remove the # before this line
-#
-# The df.tail(5) command will show the last 5 rows of the billings dataframe. To run this, simply remove the # before this line
-#
-# The df.sample(5) command will show a random 5 rows of the rec dataframe. To run this, simply remove the # before this line
-#
-# Note 1: Only one of these commands can be entered in a single code cell at a time. (So if you remove 2 of the #, only one of the commands will be displayed.
-#
-# Note 2: The 5 can also be changed, but I think it caps out at 100. For example df.head(30) will show the first 30 rows of the billings dataframe.
-#
-# Note 3: The code must sit on the far leftmost column of the code window. If there is a space it will cause an error.
-
-
-# ### Filtering out any currency that has  < 20 transactions.
-# ###### To see the list of currencies and how any times they appear in the billings database remove the # before the print(vc) statement
-# We have started selling in many new currencies over the last few years.
-:
-
-
-# creates a list of the currencies and the number of transactions for each currency
 vc = df["curr"].value_counts()
-# print(vc)
-
-# Create variable that is true if the number of transaction is greater than 20, false otherwise
 keep_these = vc.values > 20
-# filtering only currencies that were greater than 20
 keep_curr = vc[keep_these]
 a = keep_curr.index
-
-
-# #### Just keeping track of the currencies we removed in our model_dict data structure
-In[6]:
-
-
 remove_these = vc[vc.values <= 20].index
 model_dict = {"curr_removed": list(vc[remove_these].index)}
 delete_curr = list(remove_these)
-print(model_dict)
-
-
-# #### The FX database does not have information on the following currencies
-#  - AED (United Arab Emirates Dirham)
-#  - BMD (Bermudan Dollar)
-#  - MXP (Mexican Peso)
-#  - TRY (Turkish Lira)
-#
-#  Below we are adding the Turkish Lira to our list of currencies that should be removed from the dataframe
-
 
 if "TRY" not in model_dict["curr_removed"]:
     model_dict["curr_removed"].append("TRY")
     delete_curr.append("TRY")
     a = a.drop("TRY")
 
-
-# ###### Clearing out the infrequent currencies from our billings data
-
-
+logger.debug(f"Model dictionary = (model_dict)")
+logger.debug(f"length of billings data before currencies removed = (len(df))")
 df = df[df["curr"].isin(a)]
+logger.debug(f"length of billings data AFTER currencies removed = (len(df))")
 
-print("Model dictionary", model_dict)
 
-print("---Removing infrequent currencies from billings history---")
-print("Total number of currencies in the base billings file: ", len(vc))
+logger.debug("---Removing infrequent currencies from billings history---")
+logger.debug(f"Total number of currencies in the base billings file: (len(vc))")
 if len(model_dict["curr_removed"]) == 0:
-    print("No currencies were removed, all contained 10 or more billings")
-    print("Currencies in the base billings file")
+    logger.debug("No currencies were removed, all contained 20 or more billings")
+    logger.debug("Currencies in the base billings file")
     for item in a:
-        print(a[item], end=" ")
+        logger.debug(a[item], end=" ")
 else:
-    print("\n Currencies were removed: ", len(model_dict["curr_removed"]))
+    logger.debug(f'\n Currencies were removed: (len(model_dict["curr_removed"]))')
 
     for item in remove_these:
-        print(item, ", ", end="")
+        logger.debug(f"{item}")
 
-    print("\n\n{} Remaining currencies: ".format(len(a)))
+    logger.debug(f"\n\n Remaining currencies: (len(a))")
     for item in a:
-        print(item, ", ", end="")
+        logger.debug(item, ", ", end="")
 
 
-print("This is the length of the dataframe before removing zeros: ", len(df))
+logger.debug(f"This is the length of the dataframe before removing zeros: (len(df))")
 df = df[df["DC_amount"] != 0]
-print("This is the length of the dataframe after removing zeros: ", len(df))
+logger.debug(f"length of billings dataframe after removing zeros: (len(df))")
+
+logger.debug(f"df.head(10) = (df.head(10)")
 
 
-
-df.head(10)
-# df.tail(10)
-# df.sample(10)
-
-
-# #### Clearing out the Non-Revenue billings from the file
-#
+# Clearing out the Non-Revenue billings from the file
 
 df["Sales Type"].value_counts()
 
 
-
-print("Length of the dataframe before removing non-revenue billings: ", len(df))
+logger.debug(f"Length of the dataframe before removing non-revenue billings: (len(df))")
 df = df[df["Sales Type"] != "NON-REV"]
-print("Length of the dataframe after removing non-revenue billings:  ", len(df))
+logger.debug(f"Length of the dataframe after removing non-revenue billings: (len(df))")
 
-
-#
 # ## Grouping the billings by sales type
 
 # Grouping the data by the <b> Sales Type </b> field
@@ -185,58 +134,32 @@ rec = df[df["Sales Type"] == "RECOGNIZED"].copy()
 svc = df[df["Sales Type"] == "PRO-SVC-INV"].copy()
 dfr = df[df["Sales Type"] == "DEFERRED"].copy()
 
-print("Total number of billings:              ", len(df))
-print("Number of recognized revenue billings: ", len(rec))
-print("Number of service invoiced billings:   ", len(svc))
-print("Number of deferred revenue billings:   ", len(dfr))
+logger.debug(f"Total number of billings:     (len(df))")
+logger.debug(f"Number of recognized revenue billings:  (len(rec))")
+logger.debug(f"Number of service invoiced billings:    (len(svc))")
+logger.debug(f"Number of deferred revenue billings:    (len(dfr))")
 
-
-# ### Recognized Revenue
-#
-# The rec.head(5) command will show the first 5 elements of the rec dataframe. To run this, simply remove the # before this line
-#
-# The rec.tail(5) command will show the last 5 elements of the rec dataframe. To run this, simply remove the # before this line
-#
-# The rec.sample(5) command will show the a random 5 elements of the rec dataframe. To run this, simply remove the # before this line
-#
-# Note: Only one of these commands can be entered in a single code cell at a time.
-#
-# Note: The 5 can also be changed, but I think it caps out at 100
-
-
-# ##### Below we are grouping the rec dataframe by Currency, Business Unit and Period and cleaning up the data we do not need. Since the recognized revenue go directly to revenue, there is no contract that will renew and need to be modeled in the future.
-
+# Recognized Revenue
+# Below we are grouping the rec dataframe by Currency, Business Unit and Period and cleaning up the data we do not need. Since the recognized revenue go directly to revenue, there is no contract that will renew and need to be modeled in the future.
 
 # testing groupby object
 gb_rec = rec.groupby(["curr", "BU", "period"], as_index=False).sum()
 gb_rec.drop(labels="Subscription Term", axis=1, inplace=True)
 
 
-gb_rec.head(10)
-# gb_rec.tail(10)
-# gb_rec.sample(10)
+logger.debug(f" gb_rec header : (gb_rec.head(10))")
 
-
-# ### Service Billings
-#
-# ##### Below we are grouping the svc dataframe by Currency, Business Unit and Period and cleaning up the data we do not need. Since the service billings go directly to revenue, there is no contract that will renew and need to be modeled in the future.
-
+# Service Billings
+# Below we are grouping the svc dataframe by Currency, Business Unit and Period and cleaning up the data we do not need. Since the service billings go directly to revenue, there is no contract that will renew and need to be modeled in the future.
 
 gb_svc = svc.groupby(["curr", "BU", "period"], as_index=False).sum()
 gb_svc.drop(labels="Subscription Term", axis=1, inplace=True)
+logger.debug(f" gb_svc header : (gb_svc.head(10))")
 
+logger.debug(f" Group By Service header: (gb_svc.head(15))")
 
-gb_svc.head(15)
-# gb_svc.tail(5)
-# gb_svc.sample(5)
-
-
-# ### Deffered Billings
-#
-# #### Type B Billings
-# Type B billings are service agreements that will have invoices submitted before the billings are reclassified to revenue. If no invoices are assigned to the billings, the billings become revenue in 12 months. Since these billings do not have a contract that will renew in the future, there is no need to model a rebillings of these service based billings (for purposes of modeling Deferred Revenue). We do need to forecast how the existing type B billings amortize to revenue and how any new service billings are booked to deferred.
-#
-
+# Deffered Billings
+# Type B Billings
 
 dfr_b = dfr[dfr["rev_req_type"] == "B"].copy()
 gb_b = dfr_b.groupby(["curr", "BU", "period"], as_index=False).sum()
@@ -273,7 +196,6 @@ gb_a.drop(labels="Subscription Term", axis=1, inplace=True)
 # gb_a.sample(20)
 
 
-
 gb_a["config"].value_counts()
 
 
@@ -299,12 +221,10 @@ gb_a_3Y = gb_a_config[gb_a_config["config"] == "3Y"].copy()
 gb_a_1M = gb_a_config[gb_a_config["config"] == "MTHLY"].copy()
 
 
-
 print("this is the lenght of type A 1M billings: ", len(gb_a_1M))
 print("this is the lenght of type A 1Y billings: ", len(gb_a_1Y))
 print("this is the lenght of type A 2Y billings: ", len(gb_a_2Y))
 print("this is the lenght of type A 3Y billings: ", len(gb_a_3Y))
-
 
 
 # gb_a_2Y.head(5)
@@ -329,7 +249,6 @@ dfr_d = dfr[dfr["rev_req_type"] == "D"].copy()
 
 gb_d = dfr_d.groupby(["curr", "BU", "period", "rebill_rule"], as_index=False).sum()
 gb_d.drop(labels="Subscription Term", axis=1, inplace=True)
-
 
 
 gb_d["rebill_rule"].value_counts()
@@ -423,8 +342,6 @@ list_columns = [
     "deferred_2Y_d",
     "deferred_3Y_d",
 ]
-
-
 
 
 def sum_USD_amt(list_df, list_columns):
@@ -572,7 +489,6 @@ total_df
 
 
 total_df.loc["deferred_1M_d"] + total_df.loc["deferred_1M_a"]
-
 
 
 # Make this a function to be cleaned up somehow
@@ -732,7 +648,6 @@ print_text = "No"
 df_A.head(10)
 # df_A.sample(10)
 # df_A.tail(10)
-
 
 
 # ###### Dropping the columns we no longer need
@@ -1275,7 +1190,6 @@ df_de4 = df_bookings[
 df_de4["US_amount"].sum()
 
 
-
 df_bookings.BU.value_counts()
 
 
@@ -1344,7 +1258,6 @@ df_billings.columns
 df_billings.head(5)
 # df_billings.sample(5)
 # df_billings.tail(5)
-
 
 
 # ##### Saving these dataframes in as a python dictionary in the pickle file 'all_inputs.p'
@@ -2637,7 +2550,6 @@ df_qtrly_only = df_qtrly_only.loc[:, ~df_qtrly_only.columns.str.contains("P")]
 df_period_only["total"] = df_period_only.sum(axis=1)
 
 
-
 df_period_only
 
 
@@ -2742,7 +2654,6 @@ def build_deferred_waterfall_slice(df_this_wf, this_slice):
     df_this_wf["p_4"] += this_slice["deferred_6M_US"] * (1 / 6)
     df_this_wf["p_5"] += this_slice["deferred_6M_US"] * (1 / 6)
     df_this_wf["p_6"] += this_slice["deferred_6M_US"] * (1 / 12)
-
 
     # 1/24th directly to revenue
     df_this_wf["p_1"] += this_slice["deferred_1Y_US"] * (1 / 12)
@@ -3151,7 +3062,6 @@ saved_dict["initial_waterfall"] = df_waterfall
 pickle.dump(saved_dict, open("../data/processed/final_forecast_2.p", "wb"))
 
 
-
 # ### Testing parts of the bookings/waterfall
 
 
@@ -3197,7 +3107,6 @@ input_df_dict = {
     "waterfall": df_all,
 }
 pickle.dump(input_df_dict, open("../data/processed/final_forecast.p", "wb"))
-
 
 
 # %%

@@ -1,0 +1,33 @@
+DEBUG:deferred_logger:Processing the Base Billings Data
+DEBUG:deferred_logger: df_columns = (df.columns)
+DEBUG:deferred_logger:Model dictionary = (model_dict)
+DEBUG:deferred_logger:length of billings data before currencies removed = (len(df))
+DEBUG:deferred_logger:length of billings data AFTER currencies removed = (len(df))
+DEBUG:deferred_logger:---Removing infrequent currencies from billings history---
+DEBUG:deferred_logger:Total number of currencies in the base billings file: (len(vc))
+DEBUG:deferred_logger:
+ Currencies were removed: (len(model_dict["curr_removed"]))
+DEBUG:deferred_logger:Processing the Base Billings Data
+DEBUG:deferred_logger: df_columns = Index(['curr', 'BU', 'Frequency', 'period', 'config', 'rev_req_type',
+       'rebill_rule', 'Sales Type', 'Subscription Term', 'DC_amount',
+       'US_amount'],
+      dtype='object')
+DEBUG:deferred_logger:Model dictionary = (model_dict)
+DEBUG:deferred_logger:length of billings data before currencies removed = (len(df))
+DEBUG:deferred_logger:length of billings data AFTER currencies removed = (len(df))
+DEBUG:deferred_logger:---Removing infrequent currencies from billings history---
+DEBUG:deferred_logger:Total number of currencies in the base billings file: (len(vc))
+DEBUG:deferred_logger:
+ Currencies were removed: (len(model_dict["curr_removed"]))
+[<ipython-input-1-18b480a4a605>:18 -        <module>()] Processing the Base Billings Data
+[<ipython-input-1-18b480a4a605>:39 -        <module>()]  df_columns = Index(['curr', 'BU', 'Frequency', 'period', 'config', 'rev_req_type',
+       'rebill_rule', 'Sales Type', 'Subscription Term', 'DC_amount',
+       'US_amount'],
+      dtype='object')
+[<ipython-input-1-18b480a4a605>:54 -        <module>()] Model dictionary = (model_dict)
+[<ipython-input-1-18b480a4a605>:55 -        <module>()] length of billings data before currencies removed = (len(df))
+[<ipython-input-1-18b480a4a605>:57 -        <module>()] length of billings data AFTER currencies removed = (len(df))
+[<ipython-input-1-18b480a4a605>:61 -        <module>()] ---Removing infrequent currencies from billings history---
+[<ipython-input-1-18b480a4a605>:62 -        <module>()] Total number of currencies in the base billings file: (len(vc))
+[<ipython-input-1-18b480a4a605>:69 -        <module>()] 
+ Currencies were removed: (len(model_dict["curr_removed"]))
