@@ -1612,3 +1612,320 @@ def interp_FX_fwds(df_FX_rates):
             df_FX_rates.loc[index, new_cols[i]] = interp_fwds[i]
 
     return df_FX_rates
+
+def test_df_duplicates(df):
+    ''' Testing whether we have duplicates in our merged dataframe'''
+    df_test_dup = df.copy()
+    orig_len = len(df_test_dup)
+    print("Original Length of the dataframe before duplicate test: ", orig_len)
+
+    df_test_dup =df_test_dup.drop_duplicates(subset=['curr', 'BU', 'period'])
+    print('New length of database after duplicates have been removed: ',len(df_test_dup))
+
+    if orig_len!=len(df_test_dup):
+        print('We had duplicates in the dataframe! Look into why')
+        error_duplicates = 1
+    else:
+        error_duplicates = 0
+    return error_duplicates
+
+def merge_bookings_with_curr(df_bookings, df_curr_map):
+
+    list_book_ctry = df_bookings["country"].unique()
+    print("Countries in the bookings file: \n", list_book_ctry)
+
+    list_curr_map = df_curr_map["Country"].unique()
+    print("Countries in the currency map file: \n", list_curr_map)
+
+    # ##### Checking that we have the currency mapping for every country where we have a bookings forecast
+    a = list(set(list_book_ctry) & set(list_curr_map))
+
+    not_in_map = set(list_book_ctry).difference(set(list_curr_map))
+    if len(not_in_map) != 0:
+        print(
+            "There is a bookings currency that is not in the currency map!\nWe need to look into the currency map file and add this!"
+        )
+    else:
+        print(
+            "The bookings currencies are in the currency map. OK to merge the dataframes."
+        )
+
+    # ###### Merge the bookings forecast with the currency map
+    df_bookings = pd.merge(
+        df_bookings, df_curr_map, how="left", left_on="country", right_on="Country"
+    )
+    # the country and Country are the same so we are dropping one of them
+    df_bookings = df_bookings.drop("Country", axis=1)
+
+    return df_bookings
+
+def build_booking_periods(df_billings):
+    '''
+    STEPS
+        Creating data to add to the billings dataframe to incorporate period by period billings
+        Fills in the df_book_period dataframe with the quarterly bookings numbers for each BU and currency
+        Creating lists of periods and quarters needed to fill out the df_book_period dataframe
+        Adding the booking periods to the dataframe. The bookings are split into periods based on last years percentage of 1 year deferred billings within the quarter.
+            For example: P1 = 25%, P2 = 30%, P3 = 45% such that the sum is equal to the total quarterly billings last year
+        Cleaning up the dataframe by dropping the columns we no longer need
+    '''
+    list_BUs = df_bookings["BU"].unique()
+    list_curr = df_bookings["Currency"].unique()
+
+    print("This is the list of BUs in the bookings dataframe: ", list_BUs)
+    print("This is the list of currencies in the bookings dataframe: ", list_curr)
+
+    # NOTE:  This is just creating the space in the dataframe for the data. We will fill it in later
+    # creating dataframe of zeros
+    l_BU = []
+    l_curr = []
+    for BU in list_BUs:
+        for curr in list_curr:
+            l_BU.append(BU)
+            l_curr.append(curr)
+    # print(l_BU)
+    # print(l_curr)
+    l_zero = np.zeros(len(l_BU))
+
+    data = {
+        "BU": l_BU,
+        "curr": l_curr,
+        "Q1": l_zero,
+        "Q2": l_zero,
+        "Q3": l_zero,
+        "Q4": l_zero,
+        "P01": l_zero,
+        "P02": l_zero,
+        "P03": l_zero,
+        "P04": l_zero,
+        "P05": l_zero,
+        "P06": l_zero,
+        "P07": l_zero,
+        "P08": l_zero,
+        "P09": l_zero,
+        "P10": l_zero,
+        "P11": l_zero,
+        "P12": l_zero,
+    }
+
+    df_book_period = pd.DataFrame(data)
+
+    df_book_period.head(14)
+
+    df_bookings.BU.value_counts()
+
+    # Fills in the df_book_period dataframe with the quarterly bookings numbers for each BU and currency
+    # fill in the quarters
+    for i in range(len(df_book_period["BU"])):
+
+        this_BU = df_book_period["BU"][i]
+        this_curr = df_book_period["curr"][i]
+        this_slice = df_bookings[
+            (df_bookings["BU"] == this_BU) & (df_bookings["Currency"] == this_curr)
+        ]
+
+        this_Q1 = this_slice[this_slice["Quarter"] == "Q1 2020"]
+        sum_Q1 = this_Q1["US_amount"].sum()
+        df_book_period["Q1"].loc[i] = sum_Q1
+
+        this_Q2 = this_slice[this_slice["Quarter"] == "Q2 2020"]
+        sum_Q2 = this_Q2["US_amount"].sum()
+        df_book_period["Q2"].loc[i] = sum_Q2
+
+        this_Q3 = this_slice[this_slice["Quarter"] == "Q3 2020"]
+        sum_Q3 = this_Q3["US_amount"].sum()
+        df_book_period["Q3"].loc[i] = sum_Q3
+
+        this_Q4 = this_slice[this_slice["Quarter"] == "Q4 2020"]
+        sum_Q4 = this_Q4["US_amount"].sum()
+        df_book_period["Q4"].loc[i] = sum_Q4
+
+
+    df_book_period.head(30)
+
+    print("Q1 total bookings ", df_book_period["Q1"].sum())
+    print("Q2 total bookings ", df_book_period["Q2"].sum())
+    print("Q3 total bookings ", df_book_period["Q3"].sum())
+    print("Q4 total bookings ", df_book_period["Q4"].sum())
+
+    # ##### Creating lists of periods and quarters needed to fill out the df_book_period dataframe
+    # list of quarters for the percentages
+
+    list_q3 = ["2019-07", "2019-08", "2019-09"]
+    list_q4 = ["2019-10", "2019-11", "2019-12"]
+    list_q1 = ["2020-01", "2020-02", "2020-03"]
+    list_q2 = ["2020-04", "2020-05", "2020-06"]
+
+    list_periods = [
+        "2020-01",
+        "2020-02",
+        "2020-03",
+        "2020-04",
+        "2020-05",
+        "2020-06",
+        "2019-07",
+        "2019-08",
+        "2019-09",
+        "2019-10",
+        "2019-11",
+        "2019-12",
+    ]
+
+    list_p_headers = [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P08",
+        "P09",
+        "P10",
+        "P11",
+        "P12",
+    ]
+
+    list_q_headers = [
+        "Q1",
+        "Q1",
+        "Q1",
+        "Q2",
+        "Q2",
+        "Q2",
+        "Q3",
+        "Q3",
+        "Q3",
+        "Q4",
+        "Q4",
+        "Q4",
+    ]
+
+    # ##### adding the booking periods to the dataframe. The bookings are split into periods based on last years percentage of 1 year deferred billings within the quarter.
+    # For example: P1 = 25%, P2 = 30%, P3 = 45% such that the sum is equal to the total quarterly billings last year
+    for i in range(len(df_book_period["BU"])):
+
+        this_BU = df_book_period["BU"][i]
+        this_curr = df_book_period["curr"][i]
+
+        this_slice = df_billings[
+            (df_billings["BU"] == this_BU) & (df_billings["curr"] == this_curr)
+        ]
+
+        for j in range(len(list_periods)):
+            this_period = list_periods[j]
+            this_header = list_p_headers[j]
+            this_quarter = list_q_headers[j]
+            this_P_slice = this_slice[this_slice["period"] == this_period]
+            df_book_period.loc[[i], [this_header]] = this_P_slice["deferred_1Y_DC"].sum()
+
+    df_book_period["bill_Q1_sum"] = (
+        df_book_period["P01"] + df_book_period["P02"] + df_book_period["P03"]
+    )
+    df_book_period["bill_Q2_sum"] = (
+        df_book_period["P04"] + df_book_period["P05"] + df_book_period["P06"]
+    )
+    df_book_period["bill_Q3_sum"] = (
+        df_book_period["P07"] + df_book_period["P08"] + df_book_period["P09"]
+    )
+    df_book_period["bill_Q4_sum"] = (
+        df_book_period["P10"] + df_book_period["P11"] + df_book_period["P12"]
+    )
+
+    df_book_period["P01"] = (
+        df_book_period["Q1"] * df_book_period["P01"] / df_book_period["bill_Q1_sum"]
+    )
+    df_book_period["P02"] = (
+        df_book_period["Q1"] * df_book_period["P02"] / df_book_period["bill_Q1_sum"]
+    )
+    df_book_period["P03"] = (
+        df_book_period["Q1"] * df_book_period["P03"] / df_book_period["bill_Q1_sum"]
+    )
+
+    df_book_period["P04"] = (
+        df_book_period["Q2"] * df_book_period["P04"] / df_book_period["bill_Q2_sum"]
+    )
+    df_book_period["P05"] = (
+        df_book_period["Q2"] * df_book_period["P05"] / df_book_period["bill_Q2_sum"]
+    )
+    df_book_period["P06"] = (
+        df_book_period["Q2"] * df_book_period["P06"] / df_book_period["bill_Q2_sum"]
+    )
+
+    df_book_period["P07"] = (
+        df_book_period["Q3"] * df_book_period["P07"] / df_book_period["bill_Q3_sum"]
+    )
+    df_book_period["P08"] = (
+        df_book_period["Q3"] * df_book_period["P08"] / df_book_period["bill_Q3_sum"]
+    )
+    df_book_period["P09"] = (
+        df_book_period["Q3"] * df_book_period["P09"] / df_book_period["bill_Q3_sum"]
+    )
+
+    df_book_period["P10"] = (
+        df_book_period["Q4"] * df_book_period["P10"] / df_book_period["bill_Q4_sum"]
+    )
+    df_book_period["P11"] = (
+        df_book_period["Q4"] * df_book_period["P11"] / df_book_period["bill_Q4_sum"]
+    )
+    df_book_period["P12"] = (
+        df_book_period["Q4"] * df_book_period["P12"] / df_book_period["bill_Q4_sum"]
+    )
+
+    df_book_period.tail(10)
+
+
+    # ###### Cleaning up the dataframe by dropping the columns we no longer need
+    df_book_period.drop(
+        ["bill_Q1_sum", "bill_Q2_sum", "bill_Q3_sum", "bill_Q4_sum"], axis=1, inplace=True
+    )
+
+    df_book_period.columns
+
+    return df_book_period
+
+def convert_bookings_to_DC(df_book_period, df_FX_fwds):
+    '''
+    The bookings forecast is in USD, but we need document currency bookings.
+    This function takes the df_book_period dataframe and adds the DC equivalent
+    to all of the bookings by using the plan FX forward rates dataframe df_FX_fwds
+
+    '''
+    df_FX_fwds.set_index("curr", inplace=True)
+
+    list_fwds = []
+    for i in range(len(df_book_period["curr"])):
+        this_curr = df_book_period["curr"][i]
+
+        if this_curr == "USD":
+            this_fwd = 1
+        else:
+            this_fwd = df_FX_fwds.loc[this_curr, "forward"]
+
+        list_fwds.append(this_fwd)
+    df_book_period["FX_fwd_rate"] = list_fwds
+
+    df_book_period["P01_DC"] = df_book_period["P01"] * df_book_period["FX_fwd_rate"]
+    df_book_period["P02_DC"] = df_book_period["P02"] * df_book_period["FX_fwd_rate"]
+    df_book_period["P03_DC"] = df_book_period["P03"] * df_book_period["FX_fwd_rate"]
+    df_book_period["P04_DC"] = df_book_period["P04"] * df_book_period["FX_fwd_rate"]
+    df_book_period["P05_DC"] = df_book_period["P05"] * df_book_period["FX_fwd_rate"]
+    df_book_period["P06_DC"] = df_book_period["P06"] * df_book_period["FX_fwd_rate"]
+    df_book_period["P07_DC"] = df_book_period["P07"] * df_book_period["FX_fwd_rate"]
+    df_book_period["P08_DC"] = df_book_period["P08"] * df_book_period["FX_fwd_rate"]
+    df_book_period["P09_DC"] = df_book_period["P09"] * df_book_period["FX_fwd_rate"]
+    df_book_period["P10_DC"] = df_book_period["P10"] * df_book_period["FX_fwd_rate"]
+    df_book_period["P11_DC"] = df_book_period["P11"] * df_book_period["FX_fwd_rate"]
+    df_book_period["P12_DC"] = df_book_period["P12"] * df_book_period["FX_fwd_rate"]
+
+
+    # df_book_period.head(10)
+    # df_book_period.sample(10)
+    df_book_period.tail(10)
+
+
+    # ##### The df_book_period dataframe now has columns for bookings each period in both local currency and document currency
+
+    df_book_period.columns
+
+    return df_book_period

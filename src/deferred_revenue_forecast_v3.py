@@ -64,12 +64,10 @@ curr_map_sheetname ="curr_map"
 # FX data (spots, vols and forwards from Bloomberg)
 FX_rates_filename = "../data/Data_2020_P06/FX_data.xlsx"
 FX_rates_sheetname = 'to_matlab'
-df_FX_rates = load_FX_data(FX_rates_filename, FX_rates_sheetname)
 
 # FX Forward Rates used in the FP&A Plan
 FX_fwds_filename = "../data/Data_2020_P06/FX_forward_rates.xlsx"
 FX_fwds_sheetname = 'forward_data'
-df_FX_fwds = load_FX_fwds(FX_fwds_filename, FX_fwds_sheetname)
 
 # Bookings Forecast (From FP&A)
 bookings_filename = "../data/Data_2020_P06/2020_bookings_fcst_Q2.xlsx"
@@ -78,6 +76,12 @@ bookings_sheetname = 'source'
 ''' Loading up the input files '''
 # Adobe Financial Calendar to get period start and end dates
 df_cal = load_ADBE_cal(ADBE_cal_filename, ADBE_cal_sheetname)
+
+# FX Rates
+df_FX_rates = load_FX_data(FX_rates_filename, FX_rates_sheetname)
+
+# FX forwards
+df_FX_fwds = load_FX_fwds(FX_fwds_filename, FX_fwds_sheetname)
 
 #  Currency Map
 df_curr_map = load_curr_map(curr_map_filename, curr_map_sheetname)
@@ -88,7 +92,6 @@ df, model_dict = load_base_billings(billings_filename, billings_sheetname)
 
 # ## I NEED TO CREATE A BETTER PRESENTATION OF THIS CHECK THAT EVERYTHING MATCHES!!!!
 # ## Need to create a summary report with totals coming from every area to make sure the totals I have make sense
-
 
 # # TO BE DONE:
 #
@@ -115,17 +118,23 @@ df, model_dict = load_base_billings(billings_filename, billings_sheetname)
 
 df_billings = add_type_A_billings(billings_filename, type_A_sheetname, df, model_dict)
 
+error_duplicates = test_df_duplicates(df_billings)
+if error_duplicates:
+    print('Duplicates in our billings dataframe')
+
+df_billings = df_billings.sort_values(['curr', 'BU', 'period'], ascending = (True, True, True))
+
 with open("../data/processed/all_billings2.p", "wb") as f:
     pickle.dump(df_billings, f)
 
 
-# #### Below Load up the billings dataframe (for debugging purposes)
+# Below Load up the billings dataframe (for debugging purposes)
 
 
 # df_billings = pickle.load( open('../data/processed/all_billings.p', 'rb' ))
 
 
-# ### Loading All of the other information we need here from excel files
+#  Loading All of the other information we need here from excel files
 #  - currency_map: contain a mapping of currency the majority of our billings in each country
 #  - FX_data: contains current spot rates, FX forward rates and FX volatilities
 #  - FX_forward_rates: contains the forward rates used in the FP&A Plan
@@ -135,46 +144,14 @@ with open("../data/processed/all_billings2.p", "wb") as f:
 df_bookings =load_bookings(bookings_filename, bookings_sheetname)
 
 # ### Merging the bookings country data to a currency using the currency map dataframe (df_curr_map)
+df_bookings = merge_bookings_with_curr(df_bookings, df_curr_map)
 
-list_book_ctry = df_bookings["country"].unique()
-print("Countries in the bookings file: \n", list_book_ctry)
-
-list_curr_map = df_curr_map["Country"].unique()
-print("Countries in the currency map file: \n", list_curr_map)
-
-
-# ##### Checking that we have the currency mapping for every country where we have a bookings forecast
-
-
-a = list(set(list_book_ctry) & set(list_curr_map))
-
-not_in_map = set(list_book_ctry).difference(set(list_curr_map))
-if len(not_in_map) != 0:
-    print(
-        "There is a bookings currency that is not in the currency map!\nWe need to look into the currency map file and add this!"
-    )
-else:
-    print(
-        "The bookings currencies are in the currency map. OK to merge the dataframes."
-    )
-
-
-# ###### Merge the bookings forecast with the currency map
-
-
-df_bookings = pd.merge(
-    df_bookings, df_curr_map, how="left", left_on="country", right_on="Country"
-)
-# the country and Country are the same so we are dropping one of them
-df_bookings = df_bookings.drop("Country", axis=1)
-
-
+# testing bookings file
 df_bookings["booking_type"].value_counts()
 
-
 # ### Check on bookings by BU and Quarter to see if it Matches Karen's file
-
-
+# This needs to go into a seperate function that will dump into excel to test
+'''
 df_cr = df_bookings[
     (df_bookings["BU"] == "Creative") & (df_bookings["Quarter"] == "Q3 2020")
 ]
@@ -209,32 +186,26 @@ df_de4 = df_bookings[
     (df_bookings["BU"] == "Experience Cloud") & (df_bookings["Quarter"] == "Q4 2020")
 ]
 df_de4["US_amount"].sum()
-
+'''
 
 df_bookings.BU.value_counts()
 
-
-# ### Adding periods weeks (from the Adobe calendar) to the billings dataframe
-
-
-
+''' BACK TO THE BILLINGS FILE '''
+# Adding periods weeks (from the Adobe calendar) to the billings dataframe
 # ##### Merging the calendar periods with the periods in the df_billings dataframe to bring over period weeks
 df_billings = df_billings.merge(
     df_cal, how="left", left_on="period", right_on="period_match"
 )
 
 
-df_billings.columns
+print('df_billings columns before: ',df_billings.columns)
 
 # df_billings.drop(['period_match', '_merge'], axis=1, inplace=True)
 df_billings.drop(["period_match"], axis=1, inplace=True)
 
-df_billings.columns
+print('df_billings columns after: ',df_billings.columns)
 
 df_billings.head(5)
-# df_billings.sample(5)
-# df_billings.tail(5)
-
 
 # ##### Saving these dataframes in as a python dictionary in the pickle file 'all_inputs.p'
 
@@ -277,260 +248,11 @@ print(
 # - The billings dataframe is by period
 # - the bookings dataframe contains net new bookings by quarter
 #
+df_book_period = build_booking_periods(df_billings)
 
-
-# find the last period in the billings index
-last_period = "2020-06"
-
-list_BUs = df_bookings["BU"].unique()
-list_curr = df_bookings["Currency"].unique()
-
-print("This is the list of BUs in the bookings dataframe: ", list_BUs)
-print("This is the list of currencies in the bookings dataframe: ", list_curr)
-
-
-# ##### Creating data to add to the billings dataframe to incorporate period by period billings
-# NOTE:  This is just creating the space in the dataframe for the data. We will fill it in later
-
-
-# creating dataframe of zeros
-l_BU = []
-l_curr = []
-for BU in list_BUs:
-    for curr in list_curr:
-        l_BU.append(BU)
-        l_curr.append(curr)
-# print(l_BU)
-# print(l_curr)
-l_zero = np.zeros(len(l_BU))
-
-
-data = {
-    "BU": l_BU,
-    "curr": l_curr,
-    "Q1": l_zero,
-    "Q2": l_zero,
-    "Q3": l_zero,
-    "Q4": l_zero,
-    "P01": l_zero,
-    "P02": l_zero,
-    "P03": l_zero,
-    "P04": l_zero,
-    "P05": l_zero,
-    "P06": l_zero,
-    "P07": l_zero,
-    "P08": l_zero,
-    "P09": l_zero,
-    "P10": l_zero,
-    "P11": l_zero,
-    "P12": l_zero,
-}
-
-df_book_period = pd.DataFrame(data)
-
-
-df_book_period.head(14)
-
-
-# ##### Uncomment below to remember what the df_bookings looked like
-
-
-df_bookings.head(10)
-# df_bookings.sample(10)
-# df_bookings.tail(10)
-
-
-df_bookings.BU.value_counts()
-
-
-# ##### The cell below fills in the df_book_period dataframe with the quarterly bookings numbers for each BU and currency
-
-
-# fill in the quarters
-for i in range(len(df_book_period["BU"])):
-
-    this_BU = df_book_period["BU"][i]
-    this_curr = df_book_period["curr"][i]
-    this_slice = df_bookings[
-        (df_bookings["BU"] == this_BU) & (df_bookings["Currency"] == this_curr)
-    ]
-
-    this_Q1 = this_slice[this_slice["Quarter"] == "Q1 2020"]
-    sum_Q1 = this_Q1["US_amount"].sum()
-    df_book_period["Q1"].loc[i] = sum_Q1
-
-    this_Q2 = this_slice[this_slice["Quarter"] == "Q2 2020"]
-    sum_Q2 = this_Q2["US_amount"].sum()
-    df_book_period["Q2"].loc[i] = sum_Q2
-
-    this_Q3 = this_slice[this_slice["Quarter"] == "Q3 2020"]
-    sum_Q3 = this_Q3["US_amount"].sum()
-    df_book_period["Q3"].loc[i] = sum_Q3
-
-    this_Q4 = this_slice[this_slice["Quarter"] == "Q4 2020"]
-    sum_Q4 = this_Q4["US_amount"].sum()
-    df_book_period["Q4"].loc[i] = sum_Q4
-
-
-df_book_period.head(30)
-# df_book_period.sample(10)
-# df_book_period.tail(10)
-
-
-print("Q1 total bookings ", df_book_period["Q1"].sum())
-print("Q2 total bookings ", df_book_period["Q2"].sum())
-print("Q3 total bookings ", df_book_period["Q3"].sum())
-print("Q4 total bookings ", df_book_period["Q4"].sum())
-
-
-# ##### Creating lists of periods and quarters needed to fill out the df_book_period dataframe
-
-
-# list of quarters for the percentages
-
-list_q3 = ["2019-07", "2019-08", "2019-09"]
-list_q4 = ["2019-10", "2019-11", "2019-12"]
-list_q1 = ["2020-01", "2020-02", "2020-03"]
-list_q2 = ["2020-04", "2020-05", "2020-06"]
-
-list_periods = [
-    "2020-01",
-    "2020-02",
-    "2020-03",
-    "2020-04",
-    "2020-05",
-    "2020-06",
-    "2019-07",
-    "2019-08",
-    "2019-09",
-    "2019-10",
-    "2019-11",
-    "2019-12",
-]
-
-list_p_headers = [
-    "P01",
-    "P02",
-    "P03",
-    "P04",
-    "P05",
-    "P06",
-    "P07",
-    "P08",
-    "P09",
-    "P10",
-    "P11",
-    "P12",
-]
-
-list_q_headers = [
-    "Q1",
-    "Q1",
-    "Q1",
-    "Q2",
-    "Q2",
-    "Q2",
-    "Q3",
-    "Q3",
-    "Q3",
-    "Q4",
-    "Q4",
-    "Q4",
-]
-
-
-# ##### adding the booking periods to the dataframe. The bookings are split into periods based on last years percentage of 1 year deferred billings within the quarter.
-# For example: P1 = 25%, P2 = 30%, P3 = 45% such that the sum is equal to the total quarterly billings last year
-
-
-for i in range(len(df_book_period["BU"])):
-
-    this_BU = df_book_period["BU"][i]
-    this_curr = df_book_period["curr"][i]
-
-    this_slice = df_billings[
-        (df_billings["BU"] == this_BU) & (df_billings["curr"] == this_curr)
-    ]
-
-    for j in range(len(list_periods)):
-        this_period = list_periods[j]
-        this_header = list_p_headers[j]
-        this_quarter = list_q_headers[j]
-        this_P_slice = this_slice[this_slice["period"] == this_period]
-        df_book_period.loc[[i], [this_header]] = this_P_slice["deferred_1Y_DC"].sum()
-
-df_book_period["bill_Q1_sum"] = (
-    df_book_period["P01"] + df_book_period["P02"] + df_book_period["P03"]
-)
-df_book_period["bill_Q2_sum"] = (
-    df_book_period["P04"] + df_book_period["P05"] + df_book_period["P06"]
-)
-df_book_period["bill_Q3_sum"] = (
-    df_book_period["P07"] + df_book_period["P08"] + df_book_period["P09"]
-)
-df_book_period["bill_Q4_sum"] = (
-    df_book_period["P10"] + df_book_period["P11"] + df_book_period["P12"]
-)
-
-df_book_period["P01"] = (
-    df_book_period["Q1"] * df_book_period["P01"] / df_book_period["bill_Q1_sum"]
-)
-df_book_period["P02"] = (
-    df_book_period["Q1"] * df_book_period["P02"] / df_book_period["bill_Q1_sum"]
-)
-df_book_period["P03"] = (
-    df_book_period["Q1"] * df_book_period["P03"] / df_book_period["bill_Q1_sum"]
-)
-
-df_book_period["P04"] = (
-    df_book_period["Q2"] * df_book_period["P04"] / df_book_period["bill_Q2_sum"]
-)
-df_book_period["P05"] = (
-    df_book_period["Q2"] * df_book_period["P05"] / df_book_period["bill_Q2_sum"]
-)
-df_book_period["P06"] = (
-    df_book_period["Q2"] * df_book_period["P06"] / df_book_period["bill_Q2_sum"]
-)
-
-df_book_period["P07"] = (
-    df_book_period["Q3"] * df_book_period["P07"] / df_book_period["bill_Q3_sum"]
-)
-df_book_period["P08"] = (
-    df_book_period["Q3"] * df_book_period["P08"] / df_book_period["bill_Q3_sum"]
-)
-df_book_period["P09"] = (
-    df_book_period["Q3"] * df_book_period["P09"] / df_book_period["bill_Q3_sum"]
-)
-
-df_book_period["P10"] = (
-    df_book_period["Q4"] * df_book_period["P10"] / df_book_period["bill_Q4_sum"]
-)
-df_book_period["P11"] = (
-    df_book_period["Q4"] * df_book_period["P11"] / df_book_period["bill_Q4_sum"]
-)
-df_book_period["P12"] = (
-    df_book_period["Q4"] * df_book_period["P12"] / df_book_period["bill_Q4_sum"]
-)
-
-
-# df_book_period.head(10)
-# df_book_period.sample(10)
-df_book_period.tail(10)
-
-
-# ###### Cleaning up the dataframe by dropping the columns we no longer need
-
-
-df_book_period.drop(
-    ["bill_Q1_sum", "bill_Q2_sum", "bill_Q3_sum", "bill_Q4_sum"], axis=1, inplace=True
-)
-
-
-df_book_period.columns
-
+''' Need to build a simple test of the booking periods to make sure they are correct '''
 test_ec = df_book_period[df_book_period["BU"] == "Experience Cloud"]
 test_ec["Q3"].sum()
-
 
 test_ec
 
@@ -549,46 +271,10 @@ test_ec["Q3"].sum()
 # ##### Converting these billings to local currency based on the forward rates at the time the plan was created
 # The booking forecast is in USD. I need to map this back into Document currency to forecast the billings in document currency. The 'plan' forward rates should have been used to create the initial USD amounts, so this is consistent with how we build the plan and bookings forecast
 
+df_book_period = convert_bookings_to_DC(df_book_period, df_FX_fwds)
 
-df_FX_fwds.set_index("curr", inplace=True)
-
-list_fwds = []
-for i in range(len(df_book_period["curr"])):
-    this_curr = df_book_period["curr"][i]
-
-    if this_curr == "USD":
-        this_fwd = 1
-    else:
-        this_fwd = df_FX_fwds.loc[this_curr, "forward"]
-
-    list_fwds.append(this_fwd)
-df_book_period["FX_fwd_rate"] = list_fwds
-
-df_book_period["P01_DC"] = df_book_period["P01"] * df_book_period["FX_fwd_rate"]
-df_book_period["P02_DC"] = df_book_period["P02"] * df_book_period["FX_fwd_rate"]
-df_book_period["P03_DC"] = df_book_period["P03"] * df_book_period["FX_fwd_rate"]
-df_book_period["P04_DC"] = df_book_period["P04"] * df_book_period["FX_fwd_rate"]
-df_book_period["P05_DC"] = df_book_period["P05"] * df_book_period["FX_fwd_rate"]
-df_book_period["P06_DC"] = df_book_period["P06"] * df_book_period["FX_fwd_rate"]
-df_book_period["P07_DC"] = df_book_period["P07"] * df_book_period["FX_fwd_rate"]
-df_book_period["P08_DC"] = df_book_period["P08"] * df_book_period["FX_fwd_rate"]
-df_book_period["P09_DC"] = df_book_period["P09"] * df_book_period["FX_fwd_rate"]
-df_book_period["P10_DC"] = df_book_period["P10"] * df_book_period["FX_fwd_rate"]
-df_book_period["P11_DC"] = df_book_period["P11"] * df_book_period["FX_fwd_rate"]
-df_book_period["P12_DC"] = df_book_period["P12"] * df_book_period["FX_fwd_rate"]
-
-
-# df_book_period.head(10)
-# df_book_period.sample(10)
-df_book_period.tail(10)
-
-
-# ##### The df_book_period dataframe now has columns for bookings each period in both local currency and document currency
-
-df_book_period.columns
-
-
-# ## Building the billings forecast in a dataframe called df_fcst
+''' STOPPED HERE 6/22 '''
+ '''Building the billings forecast in a dataframe called df_fcst
 #
 # ###  Forecasting the billings into the future
 # #### Steps
@@ -598,10 +284,8 @@ df_book_period.columns
 #  - create impact on deferred (project the new waterfall from this_
 #  - load up accounting's version of the initial waterfall (by BU)
 #  - reporting
-
+'''
 # ###### creating the list of historical bill periods
-
-
 v_BU = df_billings["BU"].copy()
 v_curr = df_billings["curr"].copy()
 v_both = v_BU + v_curr
