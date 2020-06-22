@@ -22,19 +22,19 @@
 # 6. Checking for sanity
 #
 
-
+''' Import Functions '''
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 plt.style.use("ggplot")
-
 import pickle
 from math import ceil
 from sklearn.linear_model import LinearRegression
 from scipy.interpolate import interp1d, griddata
 import logging
-import deferred_revenue_functions
+from deferred_revenue_functions import *
 
+''' Creating Logger File for Error Checking '''
 logger = logging.getLogger("deferred_logger")
 logger.setLevel("DEBUG")
 logging.basicConfig(
@@ -47,51 +47,54 @@ logging.basicConfig(
 # ## Step 1: Processing Base Billings Data
 logger.debug("Processing the Base Billings Data")
 
+''' Data File Names and sheet names '''
+# Billings file
 billings_filename = "../data/Data_2020_P06/all_billings_inputs.xlsx"
 billings_sheetname = 'base_billings'
 type_A_sheetname = "type_A_no_config"
 
+# Adobe Financial Calendar
 ADBE_cal_filename = "../data/old/ADOBE_FINANCIAL_CALENDAR.xlsx"
 ADBE_cal_sheetname = 'ADBE_cal'
+
+# Currency Map file
 curr_map_filename = "../data/Data_2020_P06/currency_map.xlsx"
 curr_map_sheetname ="curr_map"
 
-# ##### FX data
+# FX data (spots, vols and forwards from Bloomberg)
 FX_rates_filename = "../data/Data_2020_P06/FX_data.xlsx"
 FX_rates_sheetname = 'to_matlab'
 df_FX_rates = load_FX_data(FX_rates_filename, FX_rates_sheetname)
 
-# ###### FX Forward Rates used in the FP&A Plan
+# FX Forward Rates used in the FP&A Plan
 FX_fwds_filename = "../data/Data_2020_P06/FX_forward_rates.xlsx"
 FX_fwds_sheetname = 'forward_data'
 df_FX_fwds = load_FX_fwds(FX_fwds_filename, FX_fwds_sheetname)
 
-# ##### Bookings Forecast
+# Bookings Forecast (From FP&A)
 bookings_filename = "../data/Data_2020_P06/2020_bookings_fcst_Q2.xlsx"
 bookings_sheetname = 'source'
 
-# ###### Loading up the Adobe Financial Calendar to get period start and end dates
+''' Loading up the input files '''
+# Adobe Financial Calendar to get period start and end dates
 df_cal = load_ADBE_cal(ADBE_cal_filename, ADBE_cal_sheetname)
 
-# ###### Currency Map
+#  Currency Map
 df_curr_map = load_curr_map(curr_map_filename, curr_map_sheetname)
 
+# Base Billings File (not type A)
 df, model_dict = load_base_billings(billings_filename, billings_sheetname)
 
 
 # ## I NEED TO CREATE A BETTER PRESENTATION OF THIS CHECK THAT EVERYTHING MATCHES!!!!
 # ## Need to create a summary report with totals coming from every area to make sure the totals I have make sense
-df.sum()
-
-total_df = sum_USD_amt(list_df, list_columns)
-total_df
-
-total_df.loc["deferred_1M_d"] + total_df.loc["deferred_1M_a"]
 
 
 # # TO BE DONE:
 #
-# 1. Clean up the type F billings (at least check to see if they are necessary)
+# 1. Create totals or table that contains summary by DC and USD
+#
+# 2. Clean up the type F billings (at least check to see if they are necessary)
 #
 
 # ___
@@ -112,7 +115,7 @@ total_df.loc["deferred_1M_d"] + total_df.loc["deferred_1M_a"]
 
 df_billings = add_type_A_billings(billings_filename, type_A_sheetname, df, model_dict)
 
-with open("../data/processed/all_billings.p", "wb") as f:
+with open("../data/processed/all_billings2.p", "wb") as f:
     pickle.dump(df_billings, f)
 
 
@@ -216,7 +219,6 @@ df_bookings.BU.value_counts()
 
 
 # ##### Merging the calendar periods with the periods in the df_billings dataframe to bring over period weeks
-
 df_billings = df_billings.merge(
     df_cal, how="left", left_on="period", right_on="period_match"
 )
@@ -227,9 +229,7 @@ df_billings.columns
 # df_billings.drop(['period_match', '_merge'], axis=1, inplace=True)
 df_billings.drop(["period_match"], axis=1, inplace=True)
 
-
 df_billings.columns
-
 
 df_billings.head(5)
 # df_billings.sample(5)
@@ -252,7 +252,7 @@ input_df_dict = {
     "FX_rates": df_FX_rates,
 }
 
-pickle.dump(input_df_dict, open("../data/processed/all_inputs.p", "wb"))
+pickle.dump(input_df_dict, open("../data/processed/all_inputs2.p", "wb"))
 
 # ### Cleaning up the billings dataframe
 # - the billings dataframe does not contain every period if there are no bookings within a period.
@@ -602,10 +602,6 @@ df_book_period.columns
 # ###### creating the list of historical bill periods
 
 
-list_bill_periods = df_billings["period"].unique()
-list_bill_periods.sort()
-print(list_bill_periods)
-
 v_BU = df_billings["BU"].copy()
 v_curr = df_billings["curr"].copy()
 v_both = v_BU + v_curr
@@ -736,7 +732,7 @@ input_df_dict = {
     "forecast": df_fcst,
 }
 
-pickle.dump(input_df_dict, open("../data/processed/initial_forecast.p", "wb"))
+pickle.dump(input_df_dict, open("../data/processed/initial_forecast2.p", "wb"))
 
 
 df_billings.head(5)
@@ -872,7 +868,7 @@ test_EUR
 #
 
 
-def load_and_clean_waterfall(waterfall_filename, waterfall_sheetname)
+def load_and_clean_waterfall(waterfall_filename, waterfall_sheetname):
 
     df = pd.read_excel(
         "../data/Data_2020_P06/Q2'20 Rev Acctg Mgmt Workbook (06-04-20).xlsx",
@@ -1065,7 +1061,7 @@ def load_and_clean_waterfall(waterfall_filename, waterfall_sheetname)
 # #### Saving the waterfall as Q2_waterfall
 
 
-pickle.dump(df_waterfall, open("../data/processed/Q2_waterfall.p", "wb"))
+pickle.dump(df_waterfall, open("../data/processed/Q2_waterfall2.p", "wb"))
 
 
 # ## Building the Deferred Revenue Waterfall from the forecast dataframe (df_fcst) and the waterfall dataframe (df_waterfall)
@@ -1393,7 +1389,7 @@ input_df_dict = {
     "bill_waterfall": df_wf_gb,
     "waterfall": df_all,
 }
-pickle.dump(input_df_dict, open("../data/processed/final_forecast.p", "wb"))
+pickle.dump(input_df_dict, open("../data/processed/final_forecast2.p", "wb"))
 
 
 # %%

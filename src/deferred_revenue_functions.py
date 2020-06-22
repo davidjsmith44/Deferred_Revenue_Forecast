@@ -1,28 +1,37 @@
-'''
+"""
 This file contains the functions used in the deferred revenue forecast
-'''
+"""
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import logging
 
-def load_FX_data(FX_rates_filename, FX_rates_sheetname = 'to_matlab'):
-    df_FX_rates = pd.read_excel(FX_rates_filename, sheet_name= FX_rates_sheetname)
+plt.style.use("ggplot")
+
+logger = logging.getLogger("deferred_logger")
+
+
+def load_FX_data(FX_rates_filename, FX_rates_sheetname="to_matlab"):
+    df_FX_rates = pd.read_excel(FX_rates_filename, sheet_name=FX_rates_sheetname)
     df_FX_rates["VOL_3M"] = df_FX_rates["VOL_3M"] / 100
     df_FX_rates["VOL_6M"] = df_FX_rates["VOL_6M"] / 100
     df_FX_rates["VOL_9M"] = df_FX_rates["VOL_9M"] / 100
     df_FX_rates["VOL_1Y"] = df_FX_rates["VOL_1Y"] / 100
 
-
     df_FX_rates.head(5)
     return df_FX_rates
 
 
-def load_curr_map(curr_map_filename, curr_map_sheetname = 'curr_map'):
+def load_curr_map(curr_map_filename, curr_map_sheetname="curr_map"):
 
-    df_curr_map = pd.read_excel(
-        curr_map_filename, sheet_name=curr_map_sheetname
+    df_curr_map = pd.read_excel(curr_map_filename, sheet_name=curr_map_sheetname)
+    df_curr_map["Country"] = df_curr_map["Country"].str.replace(
+        "\(MA\)", "", case=False
     )
-    df_curr_map["Country"] = df_curr_map["Country"].str.replace("\(MA\)", "", case=False)
     df_curr_map["Country"] = df_curr_map["Country"].str.strip()
 
     return df_curr_map
+
 
 def add_billings_periods(df_billings):
     # clean up billings by removing LiveCycle and other solutions
@@ -76,7 +85,8 @@ def add_billings_periods(df_billings):
 
     return df_billings
 
-def load_ADBE_cal(ADBE_cal_filename, ADBE_cal_sheetname='ADBE_cal')
+
+def load_ADBE_cal(ADBE_cal_filename, ADBE_cal_sheetname="ADBE_cal"):
     # loading Adobe financial calendar and calculating period weeks
     df_cal = pd.read_excel(ADBE_cal_filename, ADBE_cal_sheetname)
     df_cal["Period_Weeks"] = (df_cal["Per_End"] - df_cal["Per_Start"]) / np.timedelta64(
@@ -84,7 +94,6 @@ def load_ADBE_cal(ADBE_cal_filename, ADBE_cal_sheetname='ADBE_cal')
     )
     df_cal["Period_Weeks"] = df_cal["Period_Weeks"].astype(int)
     df_cal["Period_Weeks"] = df_cal["Period_Weeks"] + 1
-
 
     # df_cal.head(5)
     # df_cal.sample(5)
@@ -99,7 +108,6 @@ def load_ADBE_cal(ADBE_cal_filename, ADBE_cal_sheetname='ADBE_cal')
     )
 
     df_cal.drop(["p2digit"], axis=1, inplace=True)
-
 
     # df_cal.head(10)
     df_cal.sample(10)
@@ -122,6 +130,7 @@ def load_ADBE_cal(ADBE_cal_filename, ADBE_cal_sheetname='ADBE_cal')
     )
 
     return df_cal
+
 
 def convert_fcst(df_fcst, df_FX_rates, list_columns, new_columns):
 
@@ -261,6 +270,7 @@ def bring_initial_wf_forward(df_waterfall):
     df_wf.reset_index(drop=True, inplace=True)
     return df_wf
 
+
 def sum_USD_amt(list_df, list_columns):
     total_US = []
     for df in list_df:
@@ -384,6 +394,7 @@ def clean_df_columns(df):
 
     return df
 
+
 def remove_bad_currencies(df, model_dict):
     this_list = df["curr"].unique().tolist()
 
@@ -394,19 +405,16 @@ def remove_bad_currencies(df, model_dict):
     return df
 
 
-def load_FX_fwds(FX_fwds_filename, FX_fwds_sheetname='forward_data'):
+def load_FX_fwds(FX_fwds_filename, FX_fwds_sheetname="forward_data"):
 
-    df_FX_fwds = pd.read_excel(FX_fwds_filename,
-                sheet_name = FX_fwds_sheetname,
-                skiprows=1,
-                usecols="C,G",
+    df_FX_fwds = pd.read_excel(
+        FX_fwds_filename, sheet_name=FX_fwds_sheetname, skiprows=1, usecols="C,G",
     )
 
     df_FX_fwds.rename(
         index=str, columns={"Unnamed: 2": "curr", "FWD REF": "forward"}, inplace=True
     )
     return df_FX_fwds
-
 
 
 def find_unique_curr_and_BU(df_billings):
@@ -436,6 +444,8 @@ def create_billing_forecast(df_billings, df_fcst):
         df_slice = df_billings[
             (df_billings["BU"] == this_BU) & (df_billings["curr"] == this_curr)
         ].copy()
+        list_bill_periods = df_billings["period"].unique()
+        list_bill_periods.sort()
 
         old_per_3Y = list_bill_periods[-36:-24]
         old_per_2Y = list_bill_periods[-24:-12]
@@ -675,15 +685,13 @@ def build_monthly_forecast(X, y):
     return monthly_model
 
 
-def load_bookings(bookings_filename, bookings_sheetname = 'source'):
+def load_bookings(bookings_filename, bookings_sheetname="source"):
 
     df_bookings = pd.read_excel(bookings_filename, bookings_sheetname)
-
 
     df_bookings.head(10)
     # df_bookings.sample(10)
     # df_bookings.tail(10)
-
 
     # ### Cleaning up the bookings data
     # ##### NOTE: The bookings spreadsheet looks very different for Q2 versus prior quarters!
@@ -694,7 +702,6 @@ def load_bookings(bookings_filename, bookings_sheetname = 'source'):
     #  NOTE: The '('  and ')' is a special character so we need to precede these with the escape character '\'
     #
     #  NOTE: 2 The columns also have leading or trailing spaces, we need to strip them
-
 
     df_bookings["EBU"] = df_bookings["EBU"].str.replace(" \(GP\)", "", case=False)
     df_bookings["Internal Segment"] = df_bookings["Internal Segment"].str.replace(
@@ -713,7 +720,6 @@ def load_bookings(bookings_filename, bookings_sheetname = 'source'):
     df_bookings["Geo"] = df_bookings["Geo"].str.strip()
     df_bookings["Market Area"] = df_bookings["Market Area"].str.strip()
     df_bookings["Booking Type (Low)"] = df_bookings["Booking Type (Low)"].str.strip()
-
 
     df_bookings.drop(
         columns=[
@@ -741,13 +747,13 @@ def load_bookings(bookings_filename, bookings_sheetname = 'source'):
         inplace=True,
     )
 
-
     df_bookings.head(10)
     # df_bookings.sample(10)
     # df_bookings.tail(10)
     df_bookings = clean_bookings(df_bookings)
 
     return df_bookings
+
 
 def clean_bookings(df_bookings):
 
@@ -771,13 +777,11 @@ def clean_bookings(df_bookings):
 
     # ###### The cell below shows samples of what is in the data. Removing one of the parenthesis will execute the code. (One at a time)
 
-
     df_bookings["BU"].value_counts()
     # df_bookings['segment'].value_counts()
     # df_bookings['product'].value_counts()
     # df_bookings['country'].value_counts()
     # df_bookings['booking_type'].value_counts();
-
 
     change_list = [
         "Data & Insights",
@@ -799,9 +803,7 @@ def clean_bookings(df_bookings):
 
     df_bookings["BU"] = df_bookings["BU"].replace(change_dict)
 
-
     df_bookings["BU"].value_counts()
-
 
     # df_bookings['BU'].value_counts()
     # df_bookings['segment'].value_counts()
@@ -809,25 +811,20 @@ def clean_bookings(df_bookings):
     df_bookings["country"].value_counts()
     # df_bookings['booking_type'].value_counts();
 
-
     # #### The countries now contain two fields that we need to change
     # - UNKNOWN
     # - AMER #
     #
     # These will be changed to United States
 
-
     df_bookings["country"] = df_bookings["country"].replace(
         {"AMER #": "United States", "UNKNOWN": "United States"}
     )
 
-
     df_bookings["country"].value_counts()
-
 
     df_bookings["booking_type"].value_counts()
     # df_bookings.columns
-
 
     # ##### For the booking_type we need to keep the following fields (and add them)
     # - ASV
@@ -836,16 +833,13 @@ def clean_bookings(df_bookings):
     #
     # ###### Note: These get summed by their booking amont later in the program, so we don't need to do that here
 
-
     df_bookings = df_bookings[
         df_bookings["booking_type"].isin(
             ["ASV", "Total Subscription Attrition", "Premier Support"]
         )
     ]
 
-
     df_bookings.booking_type.value_counts()
-
 
     df_bookings.tail(10)
 
@@ -1016,17 +1010,23 @@ def bring_wf_forward(df):
 
     return df
 
+
 def add_type_A_billings(billings_filename, type_A_sheetname, df, model_dict):
 
-    temp_flat_DC, temp_flat_US = load_and_clean_type_A(billings_filename, type_A_sheetname, model_dict)
+    temp_flat_DC, temp_flat_US = load_and_clean_type_A(
+        billings_filename, model_dict, type_A_sheetname
+    )
 
     df_billings = merge_billings_with_A(temp_flat_DC, temp_flat_US, df)
 
     return df_billings
 
-def load_and_clean_type_A(billings_filename, type_A_sheetname = 'type_A_no_config', model_dict):
 
-    df_A = pd.read_excel(billings_filename, sheet_name = type_A_sheetname)
+def load_and_clean_type_A(
+    billings_filename, model_dict, type_A_sheetname="type_A_no_config"
+):
+
+    df_A = pd.read_excel(billings_filename, sheet_name=type_A_sheetname)
 
     df_A.rename(
         index=str,
@@ -1050,10 +1050,11 @@ def load_and_clean_type_A(billings_filename, type_A_sheetname = 'type_A_no_confi
     # model_dict
     df_A = remove_bad_currencies(df_A, model_dict)
 
-
     # ###### Handling the duplicate dates by taking a max and creating a start_date and end_date fields in pandas datetime format
     # The type A billings file contains two different fields for the start date of each contract and two different fields for the end date of the contract. I don't know what determines which date fields a contract is entered into, but both date fields are necessary (usually the other date field is blank on a contract.) Here we are handling the duplicate date fields
-    df_A["start_date_str"] = df_A[["start_date_1", "start_date_2"]].max(axis=1).astype(str)
+    df_A["start_date_str"] = (
+        df_A[["start_date_1", "start_date_2"]].max(axis=1).astype(str)
+    )
     df_A["end_date_str"] = df_A[["end_date_1", "end_date_2"]].max(axis=1).astype(str)
 
     df_A["start_date"] = pd.to_datetime(df_A["start_date_str"])
@@ -1085,7 +1086,6 @@ def load_and_clean_type_A(billings_filename, type_A_sheetname = 'type_A_no_confi
         temp_rebill[i] = min(list_rebills, key=lambda x: abs(x - df_A["months"][i]))
     df_A["rebill_months"] = temp_rebill
 
-
     fig, axs = plt.subplots(1, 1, figsize=(14, 6))
     axs.scatter(df_A["months"], df_A["rebill_months"])
     axs.set_ylabel("Rebill Months")
@@ -1095,7 +1095,9 @@ def load_and_clean_type_A(billings_filename, type_A_sheetname = 'type_A_no_confi
 
     # Dropping the columns we no longer need
     df_A.drop(
-        columns=["start_date", "end_date", "month_interval", "months"], axis=1, inplace=True
+        columns=["start_date", "end_date", "month_interval", "months"],
+        axis=1,
+        inplace=True,
     )
 
     # Grouping the dataframe by rebill_months using a pivot table
@@ -1136,20 +1138,20 @@ def load_and_clean_type_A(billings_filename, type_A_sheetname = 'type_A_no_confi
         inplace=True,
     )
 
-
     temp_flat_DC.head(20)
 
     # Quick check that we have not created duplicate column entries (for example two entries for a period with same BU and currency)
-    df_test_dup = df.copy()
-    orig_len = len(df_test_dup)
-    print("Original Length of the dataframe before duplicate test: ", orig_len)
+    #df_test_dup = df.copy()
+    #orig_len = len(df_test_dup)
+    #print("Original Length of the dataframe before duplicate test: ", orig_len)
 
-    df_test_dup = df_test_dup.drop_duplicates(subset=["curr", "BU", "period"])
-    print("New length of database after duplicates have been removed: ", len(df_test_dup))
+    #df_test_dup = df_test_dup.drop_duplicates(subset=["curr", "BU", "period"])
+    #print(
+    #    "New length of database after duplicates have been removed: ", len(df_test_dup)
+    #)
 
-    if orig_len != len(df_test_dup):
-        print("We had duplicates in the dataframe! Look into why")
-
+    #if orig_len != len(df_test_dup):
+    #    print("We had duplicates in the dataframe! Look into why")
 
     return temp_flat_DC, temp_flat_US
 
@@ -1171,7 +1173,6 @@ def merge_billings_with_A(temp_flat_DC, temp_flat_US, df):
         pd.Series(0, index=df_with_A.select_dtypes(exclude="category").columns)
     )
 
-
     df_with_all = pd.merge(
         df_with_A,
         temp_flat_US,
@@ -1183,7 +1184,6 @@ def merge_billings_with_A(temp_flat_DC, temp_flat_US, df):
     df_with_all = df_with_all.fillna(
         pd.Series(0, index=df_with_all.select_dtypes(exclude="category").columns)
     )
-
 
     # ###### Combining columns form the different data sources (they get merged with different names) and cleaning up the columns
     df_with_all["deferred_1M_DC"] = (
@@ -1255,7 +1255,6 @@ def merge_billings_with_A(temp_flat_DC, temp_flat_US, df):
         inplace=True,
     )
 
-
     # ###### Checking totals to se if they match what we expect
     print("sum of temp flat DC 1M:      ", temp_flat_DC["deferred_1M_DC"].sum())
     print("sum of base_df before DC 1M: ", df["deferred_1M_DC"].sum())
@@ -1284,10 +1283,11 @@ def merge_billings_with_A(temp_flat_DC, temp_flat_US, df):
 
     return df_billings
 
-def load_base_billings(billings_filename, billings_sheetname = 'base_billings'):
-    ''' This loads up the base billings data and creates a dataframe
 
-    '''
+def load_base_billings(billings_filename, billings_sheetname="base_billings"):
+    """ This loads up the base billings data and creates a dataframe
+
+    """
     df = pd.read_excel(
         "../data/Data_2020_P06/all_billings_inputs.xlsx", sheet_name=billings_sheetname
     )
@@ -1327,14 +1327,13 @@ def load_base_billings(billings_filename, billings_sheetname = 'base_billings'):
     df = df[df["curr"].isin(a)]
     logger.debug(f"length of billings data AFTER currencies removed = {len(df)}")
 
-
     logger.debug("---Removing infrequent currencies from billings history---")
     logger.debug(f"Total number of currencies in the base billings file: {len(vc)}")
     if len(model_dict["curr_removed"]) == 0:
         logger.debug("No currencies were removed, all contained 20 or more billings")
         logger.debug("Currencies in the base billings file")
         for item in a:
-            logger.debug(a[item], end=" ")
+            logger.debug(a[item])
     else:
         logger.debug(f'\n Currencies were removed: {len(model_dict["curr_removed"])}')
 
@@ -1343,23 +1342,26 @@ def load_base_billings(billings_filename, billings_sheetname = 'base_billings'):
 
         logger.debug(f"\n\n Remaining currencies: {len(a)}")
         for item in a:
-            logger.debug(item, ", ", end="")
+            logger.debug(item)
 
-
-    logger.debug(f"This is the length of the dataframe before removing zeros: {len(df)}")
+    logger.debug(
+        f"This is the length of the dataframe before removing zeros: {len(df)}"
+    )
     df = df[df["DC_amount"] != 0]
     logger.debug(f"length of billings dataframe after removing zeros: {len(df)}")
 
     logger.debug(f"df.head(10) = {df.head(10)}")
 
-
     # Clearing out the Non-Revenue billings from the file
-    logger.debug(f" Sales Type Value Counts {df["Sales Type"].value_counts()}")
+    logger.debug(f"Sales Type Value Counts = {df['Sales Type'].value_counts()}")
 
-
-    logger.debug(f"Length of the dataframe before removing non-revenue billings: {len(df)}")
+    logger.debug(
+        f"Length of the dataframe before removing non-revenue billings: {len(df)}"
+    )
     df = df[df["Sales Type"] != "NON-REV"]
-    logger.debug(f"Length of the dataframe after removing non-revenue billings: {len(df)}")
+    logger.debug(
+        f"Length of the dataframe after removing non-revenue billings: {len(df)}"
+    )
 
     # ## Grouping the billings by sales type
 
@@ -1415,31 +1417,25 @@ def load_base_billings(billings_filename, billings_sheetname = 'base_billings'):
     # To fix this, we need to load up a different file and determine the length of the sales contract (type A no config)
     #
 
-
     dfr_a = dfr[dfr["rev_req_type"] == "A"].copy()
 
     gb_a = dfr_a.groupby(["curr", "BU", "period", "config"], as_index=False).sum()
     gb_a.drop(labels="Subscription Term", axis=1, inplace=True)
 
-
     # gb_a.head(20)
     # gb_a.tail(20)
     # gb_a.sample(20)
 
-
     gb_a["config"].value_counts()
-
 
     # #### Below is just a check to see how large the billing types are across all periods
 
     gb_a_config = gb_a.groupby(["config"], as_index=False).sum()
     gb_a_config
 
-
     # ###### These 'OCONS', 'OENSV', 'ONORE' and 'OUNIV' config types are not actual product config IDs so we have to get them from a different data file. We are excluding these types below.
     config_list = ["1Y", "2Y", "3Y", "MTHLY"]
     gb_a_config = gb_a[gb_a["config"].isin(config_list)]
-
 
     # ###### Grouping by the config type into gb_a_1Y, gb_a_2Y, gb_a_3y, gb_a_1M dataframes
     #
@@ -1449,17 +1445,14 @@ def load_base_billings(billings_filename, billings_sheetname = 'base_billings'):
     gb_a_3Y = gb_a_config[gb_a_config["config"] == "3Y"].copy()
     gb_a_1M = gb_a_config[gb_a_config["config"] == "MTHLY"].copy()
 
-
     print("this is the lenght of type A 1M billings: ", len(gb_a_1M))
     print("this is the lenght of type A 1Y billings: ", len(gb_a_1Y))
     print("this is the lenght of type A 2Y billings: ", len(gb_a_2Y))
     print("this is the lenght of type A 3Y billings: ", len(gb_a_3Y))
 
-
     # gb_a_2Y.head(5)
     # gb_a_1M.tail(5)
     # gb_a_3Y.sample(5)
-
 
     # #### TYPE D billings
     # These billings have a field 'Rule For Bill Date' that determines when new billings will occur
@@ -1473,15 +1466,12 @@ def load_base_billings(billings_filename, billings_sheetname = 'base_billings'):
     #
     #  We also need to track the type D billings that do not have a 'Rule for Bill Date'
 
-
     dfr_d = dfr[dfr["rev_req_type"] == "D"].copy()
 
     gb_d = dfr_d.groupby(["curr", "BU", "period", "rebill_rule"], as_index=False).sum()
     gb_d.drop(labels="Subscription Term", axis=1, inplace=True)
 
-
     gb_d["rebill_rule"].value_counts()
-
 
     # ###### Grouping these by rebill rule and incorporating rebill rules that have the same rebill period
 
@@ -1505,11 +1495,9 @@ def load_base_billings(billings_filename, billings_sheetname = 'base_billings'):
     gb_d_two_yrs = gb_d[gb_d["rebill_rule"] == "Y4"]
     gb_d_three_yrs = gb_d[gb_d["rebill_rule"] == "Y7"]
 
-
     # gb_d_qtrly.head(10)
     # gb_d_annual.tail(10)
     # gb_d_three_yrs.head(10)
-
 
     print("Length of monthly", len(gb_d_mthly))
     print("Length of quarterly", len(gb_d_qtrly))
@@ -1517,7 +1505,6 @@ def load_base_billings(billings_filename, billings_sheetname = 'base_billings'):
     print("Length of annual", len(gb_d_annual))
     print("Length of two years", len(gb_d_two_yrs))
     print("Length of three years", len(gb_d_three_yrs))
-
 
     # ## Building a single dataframe that incorporates all of this data
     #
@@ -1538,7 +1525,6 @@ def load_base_billings(billings_filename, billings_sheetname = 'base_billings'):
 
     # ###### Below uses functions to merge a list of dataframes and move billings amounts to the correct category based on rebill frequency and type
     #
-
 
     list_df = [
         gb_rec,
@@ -1577,6 +1563,7 @@ def load_base_billings(billings_filename, billings_sheetname = 'base_billings'):
     df = clean_df_columns(df)
 
     return df, model_dict
+
 
 def interp_FX_fwds(df_FX_rates):
     """ Creates monthly interpolated rates from the df_FX_rates file and adds the is_direct field """
