@@ -10,7 +10,6 @@ plt.style.use("ggplot")
 
 logger = logging.getLogger("deferred_logger")
 
-
 def load_FX_data(FX_rates_filename, FX_rates_sheetname="to_matlab"):
     df_FX_rates = pd.read_excel(FX_rates_filename, sheet_name=FX_rates_sheetname)
     df_FX_rates["VOL_3M"] = df_FX_rates["VOL_3M"] / 100
