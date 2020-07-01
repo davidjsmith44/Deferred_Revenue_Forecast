@@ -46,7 +46,7 @@ logging.basicConfig(
 
 
 # ## Step 1: Processing Base Billings Data
-logger.debug("Processing the Base Billings Data")
+logger.debug('Processing the Base Billings Data')
 
 """ Data File Names and sheet names """
 # Billings file
@@ -846,7 +846,7 @@ df_waterfall
 df_waterfall = df_waterfall.reset_index()
 df_waterfall
 
-
+# TODO: learn pycharm
 df_waterfall.rename(columns={"External Reporting BU": "BU"}, inplace=True)
 df_waterfall
 
