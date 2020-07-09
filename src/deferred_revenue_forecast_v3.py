@@ -853,7 +853,6 @@ df_waterfall
 
 # ## ADDING ADDITONAL PERIODS HERE TO MERGE WITH df_wf
 
-
 df_waterfall["P28"] = 0
 df_waterfall["P29"] = 0
 df_waterfall["P30"] = 0
@@ -944,16 +943,21 @@ df_waterfall.head(10)
 
 
 # #### Sending this data over to excel as a check
-
-
 with pd.ExcelWriter("output.xlsx") as writer:
     df_waterfall.to_excel(writer, sheet_name="initial_waterfall")
     df_wf_gb.to_excel(writer, sheet_name="billings_impact")
     df_all.to_excel(writer, sheet_name="combined")
     df_wf.to_excel(writer, sheet_name="early_wf")
 
+def create_for_curr_billings(df_all, file_name):
+    '''
+    Need to recreate the report foreign currency billings excel forecast
+    :param df_all:
+    :param file_name:
+    :return:
+    '''
 
-df_waterfall.columns
+
 
 
 # ## Add the as performed back into the waterfall forecast
@@ -965,7 +969,7 @@ df_all["Total"] = df_all[df_all.columns[:-1]].sum(axis=1)
 df_waterfall["Total"] = df_waterfall[df_waterfall.columns[:]].sum(axis=1)
 
 
-df_wf_gb.columns
+
 
 df_wf_gb["Total"] = df_wf_gb[df_wf_gb.columns[1:]].sum(axis=1)
 
