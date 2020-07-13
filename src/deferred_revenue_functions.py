@@ -1658,7 +1658,7 @@ def merge_bookings_with_curr(df_bookings, df_curr_map):
 
     return df_bookings
 
-def build_booking_periods(df_billings):
+def build_booking_periods(df_bookings):
     '''
     STEPS
         Creating data to add to the billings dataframe to incorporate period by period billings
