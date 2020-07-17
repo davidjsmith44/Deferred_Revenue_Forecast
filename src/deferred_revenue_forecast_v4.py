@@ -408,7 +408,6 @@ dc = us_slice["deferred_1Y_DC"]
 us = us_slice["deferred_1Y_US"]
 print(dc / us)
 
-
 # ### Adding the bookings data to the df_fcst. columns
 
 df_book_period.head(10)
