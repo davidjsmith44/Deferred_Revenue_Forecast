@@ -5127,3 +5127,277 @@ Name: Sales Type, dtype: int64
 [font_manager.py:1271 - _findfont_cached()] findfont: score(<Font 'Baskerville' (Baskerville.ttc) normal normal 400 normal>) = 10.05
 [font_manager.py:1271 - _findfont_cached()] findfont: score(<Font '.SF NS Display Condensed' (SFNSDisplayCondensed-Thin.otf) normal normal 400 condensed>) = 10.25
 [font_manager.py:1294 - _findfont_cached()] findfont: Matching :family=sans-serif:style=normal:variant=normal:weight=normal:stretch=normal:size=12.0 to DejaVu Sans ('/Users/davidsmith/anaconda3/lib/python3.7/site-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans.ttf') with score of 0.050000.
+[deferred_revenue_forecast_v3.py:49 -        <module>()] Processing the Base Billings Data
+[deferred_revenue_functions.py:1299 - load_base_billings()]  df_columns = Index(['curr', 'BU', 'Frequency', 'period', 'config', 'rev_req_type',
+       'rebill_rule', 'Sales Type', 'Subscription Term', 'DC_amount',
+       'US_amount'],
+      dtype='object')
+[deferred_revenue_functions.py:1315 - load_base_billings()] Model dictionary = {'curr_removed': ['SAR', 'BHD', 'KWD', 'JOD', 'EGP', 'LBP', 'OMR', 'BMD', 'MXP', 'AED', 'TRY']}
+[deferred_revenue_functions.py:1316 - load_base_billings()] length of billings data before currencies removed = 44961
+[deferred_revenue_functions.py:1318 - load_base_billings()] length of billings data AFTER currencies removed = 44784
+[deferred_revenue_functions.py:1320 - load_base_billings()] ---Removing infrequent currencies from billings history---
+[deferred_revenue_functions.py:1321 - load_base_billings()] Total number of currencies in the base billings file: 38
+[deferred_revenue_functions.py:1328 - load_base_billings()] 
+ Currencies were removed: 11
+[deferred_revenue_functions.py:1331 - load_base_billings()] SAR
+[deferred_revenue_functions.py:1331 - load_base_billings()] BHD
+[deferred_revenue_functions.py:1331 - load_base_billings()] KWD
+[deferred_revenue_functions.py:1331 - load_base_billings()] JOD
+[deferred_revenue_functions.py:1331 - load_base_billings()] EGP
+[deferred_revenue_functions.py:1331 - load_base_billings()] LBP
+[deferred_revenue_functions.py:1331 - load_base_billings()] OMR
+[deferred_revenue_functions.py:1331 - load_base_billings()] BMD
+[deferred_revenue_functions.py:1331 - load_base_billings()] MXP
+[deferred_revenue_functions.py:1331 - load_base_billings()] AED
+[deferred_revenue_functions.py:1333 - load_base_billings()] 
+
+ Remaining currencies: 27
+[deferred_revenue_functions.py:1335 - load_base_billings()] USD
+[deferred_revenue_functions.py:1335 - load_base_billings()] EUR
+[deferred_revenue_functions.py:1335 - load_base_billings()] GBP
+[deferred_revenue_functions.py:1335 - load_base_billings()] AUD
+[deferred_revenue_functions.py:1335 - load_base_billings()] JPY
+[deferred_revenue_functions.py:1335 - load_base_billings()] CHF
+[deferred_revenue_functions.py:1335 - load_base_billings()] SEK
+[deferred_revenue_functions.py:1335 - load_base_billings()] DKK
+[deferred_revenue_functions.py:1335 - load_base_billings()] NOK
+[deferred_revenue_functions.py:1335 - load_base_billings()] CAD
+[deferred_revenue_functions.py:1335 - load_base_billings()] HKD
+[deferred_revenue_functions.py:1335 - load_base_billings()] BRL
+[deferred_revenue_functions.py:1335 - load_base_billings()] RUB
+[deferred_revenue_functions.py:1335 - load_base_billings()] KRW
+[deferred_revenue_functions.py:1335 - load_base_billings()] SGD
+[deferred_revenue_functions.py:1335 - load_base_billings()] CLP
+[deferred_revenue_functions.py:1335 - load_base_billings()] COP
+[deferred_revenue_functions.py:1335 - load_base_billings()] ARS
+[deferred_revenue_functions.py:1335 - load_base_billings()] INR
+[deferred_revenue_functions.py:1335 - load_base_billings()] PEN
+[deferred_revenue_functions.py:1335 - load_base_billings()] PHP
+[deferred_revenue_functions.py:1335 - load_base_billings()] TWD
+[deferred_revenue_functions.py:1335 - load_base_billings()] THB
+[deferred_revenue_functions.py:1335 - load_base_billings()] MYR
+[deferred_revenue_functions.py:1335 - load_base_billings()] IDR
+[deferred_revenue_functions.py:1335 - load_base_billings()] ILS
+[deferred_revenue_functions.py:1335 - load_base_billings()] NZD
+[deferred_revenue_functions.py:1338 - load_base_billings()] This is the length of the dataframe before removing zeros: 44784
+[deferred_revenue_functions.py:1341 - load_base_billings()] length of billings dataframe after removing zeros: 41941
+[deferred_revenue_functions.py:1343 - load_base_billings()] df.head(10) =    curr        BU Frequency  ... Subscription Term   DC_amount US_amount
+1   ARS  Creative       NaN  ...                 1   -11291.52   -289.26
+2   ARS  Creative       NaN  ...                 1   373766.00   9601.19
+3   ARS  Creative       NaN  ...                12   241380.00   6194.45
+4   ARS  Creative       NaN  ...                 1    -1221.00    -31.07
+5   ARS  Creative       NaN  ...                 1    45799.00   1173.37
+6   ARS  Creative       NaN  ...                 1   -40014.70   -985.24
+7   ARS  Creative       NaN  ...                 1  1705471.00  42032.83
+8   ARS  Creative       NaN  ...                12  1112854.12  27486.58
+9   ARS  Creative       NaN  ...                 1   -14292.80   -351.04
+10  ARS  Creative       NaN  ...                 1   188938.00   4653.43
+
+[10 rows x 11 columns]
+[deferred_revenue_functions.py:1346 - load_base_billings()] Sales Type Value Counts = DEFERRED       35013
+RECOGNIZED      5668
+PRO-SVC-INV     1124
+NON-REV          136
+Name: Sales Type, dtype: int64
+[deferred_revenue_functions.py:1349 - load_base_billings()] Length of the dataframe before removing non-revenue billings: 41941
+[deferred_revenue_functions.py:1353 - load_base_billings()] Length of the dataframe after removing non-revenue billings: 41805
+[deferred_revenue_functions.py:1370 - load_base_billings()] Total number of billings:     41805
+[deferred_revenue_functions.py:1371 - load_base_billings()] Number of recognized revenue billings:  5668
+[deferred_revenue_functions.py:1372 - load_base_billings()] Number of service invoiced billings:    1124
+[deferred_revenue_functions.py:1373 - load_base_billings()] Number of deferred revenue billings:    35013
+[deferred_revenue_functions.py:1381 - load_base_billings()]  gb_rec header :   curr        BU   period  DC_amount  US_amount
+0  ARS  Creative  2019-07    6786.00     155.12
+1  ARS  Creative  2019-08   16472.00     390.02
+2  ARS  Creative  2019-09   19205.00     405.51
+3  ARS  Creative  2019-10   30382.19     532.13
+4  ARS  Creative  2019-11   59049.00    1023.67
+5  ARS  Creative  2019-12   71355.57    1195.94
+6  ARS  Creative  2020-01   79224.95    1323.41
+7  ARS  Creative  2020-02   36596.00     611.42
+8  ARS  Creative  2020-03   49107.00     810.06
+9  ARS  Creative  2020-04   67878.00    1082.16
+[deferred_revenue_functions.py:1387 - load_base_billings()]  gb_svc header :   curr                BU   period   DC_amount  US_amount
+0  AUD  Experience Cloud  2016-01   528857.50  381205.10
+1  AUD  Experience Cloud  2016-02   367175.25  254719.28
+2  AUD  Experience Cloud  2016-03   974604.14  697281.64
+3  AUD  Experience Cloud  2016-04   284306.25  215286.68
+4  AUD  Experience Cloud  2016-05   127172.25   98554.88
+5  AUD  Experience Cloud  2016-06  1364965.00  984510.08
+6  AUD  Experience Cloud  2016-07   937308.26  702518.83
+7  AUD  Experience Cloud  2016-08   632113.75  475127.60
+8  AUD  Experience Cloud  2016-09   793855.90  603498.40
+9  AUD  Experience Cloud  2016-10   392077.97  297718.82
+[deferred_revenue_functions.py:1388 - load_base_billings()]  Group By Service header:    curr                BU   period   DC_amount  US_amount
+0   AUD  Experience Cloud  2016-01   528857.50  381205.10
+1   AUD  Experience Cloud  2016-02   367175.25  254719.28
+2   AUD  Experience Cloud  2016-03   974604.14  697281.64
+3   AUD  Experience Cloud  2016-04   284306.25  215286.68
+4   AUD  Experience Cloud  2016-05   127172.25   98554.88
+5   AUD  Experience Cloud  2016-06  1364965.00  984510.08
+6   AUD  Experience Cloud  2016-07   937308.26  702518.83
+7   AUD  Experience Cloud  2016-08   632113.75  475127.60
+8   AUD  Experience Cloud  2016-09   793855.90  603498.40
+9   AUD  Experience Cloud  2016-10   392077.97  297718.82
+10  AUD  Experience Cloud  2016-11   521839.06  399176.79
+11  AUD  Experience Cloud  2016-12  1087703.30  805407.01
+12  AUD  Experience Cloud  2017-01   434154.00  321983.46
+13  AUD  Experience Cloud  2017-02   437898.04  328988.07
+14  AUD  Experience Cloud  2017-03  1128552.21  867288.93
+[deferred_revenue_functions.py:1395 - load_base_billings()]  type B dataframe    curr                BU   period  DC_amount  US_amount
+0   AUD          Creative  2017-10    8544.00    6837.59
+1   AUD          DX Other  2017-04   13205.00   10082.02
+2   AUD          DX Other  2017-08   27400.00   21259.93
+3   AUD          DX Other  2018-07    6635.40    4908.74
+4   AUD          DX Other  2018-08    7535.00    5561.43
+5   AUD    Document Cloud  2017-12    3283.20    2494.58
+6   AUD    Document Cloud  2018-06    3425.00    2592.18
+7   AUD    Document Cloud  2018-12    3425.00    2483.47
+8   AUD    Document Cloud  2019-03    4375.00    3122.00
+9   AUD  Experience Cloud  2016-01  358720.00  258585.43
+10  AUD  Experience Cloud  2016-02   65454.00   45782.42
+11  AUD  Experience Cloud  2016-03  534646.20  358587.17
+12  AUD  Experience Cloud  2016-04  130450.00   99763.68
+13  AUD  Experience Cloud  2016-05  143240.00  109635.05
+14  AUD  Experience Cloud  2016-06  437495.00  318573.05
+15  AUD  Experience Cloud  2016-07  401600.00  296536.18
+16  AUD  Experience Cloud  2016-08  273640.00  205221.19
+17  AUD  Experience Cloud  2016-09  840903.73  642690.01
+18  AUD  Experience Cloud  2016-10  128244.40   97060.59
+19  AUD  Experience Cloud  2016-11  209291.96  156771.08
+[deferred_revenue_forecast_v3.py:51 -        <module>()] Processing the Base Billings Data
+[deferred_revenue_functions.py:1300 - load_base_billings()]  df_columns = Index(['curr', 'BU', 'Frequency', 'period', 'config', 'rev_req_type',
+       'rebill_rule', 'Sales Type', 'Subscription Term', 'DC_amount',
+       'US_amount'],
+      dtype='object')
+[deferred_revenue_functions.py:1316 - load_base_billings()] Model dictionary = {'curr_removed': ['SAR', 'BHD', 'KWD', 'JOD', 'EGP', 'LBP', 'OMR', 'BMD', 'MXP', 'AED', 'TRY']}
+[deferred_revenue_functions.py:1317 - load_base_billings()] length of billings data before currencies removed = 44961
+[deferred_revenue_functions.py:1319 - load_base_billings()] length of billings data AFTER currencies removed = 44784
+[deferred_revenue_functions.py:1321 - load_base_billings()] ---Removing infrequent currencies from billings history---
+[deferred_revenue_functions.py:1322 - load_base_billings()] Total number of currencies in the base billings file: 38
+[deferred_revenue_functions.py:1329 - load_base_billings()] 
+ Currencies were removed: 11
+[deferred_revenue_functions.py:1332 - load_base_billings()] SAR
+[deferred_revenue_functions.py:1332 - load_base_billings()] BHD
+[deferred_revenue_functions.py:1332 - load_base_billings()] KWD
+[deferred_revenue_functions.py:1332 - load_base_billings()] JOD
+[deferred_revenue_functions.py:1332 - load_base_billings()] EGP
+[deferred_revenue_functions.py:1332 - load_base_billings()] LBP
+[deferred_revenue_functions.py:1332 - load_base_billings()] OMR
+[deferred_revenue_functions.py:1332 - load_base_billings()] BMD
+[deferred_revenue_functions.py:1332 - load_base_billings()] MXP
+[deferred_revenue_functions.py:1332 - load_base_billings()] AED
+[deferred_revenue_functions.py:1334 - load_base_billings()] 
+
+ Remaining currencies: 27
+[deferred_revenue_functions.py:1336 - load_base_billings()] USD
+[deferred_revenue_functions.py:1336 - load_base_billings()] EUR
+[deferred_revenue_functions.py:1336 - load_base_billings()] GBP
+[deferred_revenue_functions.py:1336 - load_base_billings()] AUD
+[deferred_revenue_functions.py:1336 - load_base_billings()] JPY
+[deferred_revenue_functions.py:1336 - load_base_billings()] CHF
+[deferred_revenue_functions.py:1336 - load_base_billings()] SEK
+[deferred_revenue_functions.py:1336 - load_base_billings()] DKK
+[deferred_revenue_functions.py:1336 - load_base_billings()] NOK
+[deferred_revenue_functions.py:1336 - load_base_billings()] CAD
+[deferred_revenue_functions.py:1336 - load_base_billings()] HKD
+[deferred_revenue_functions.py:1336 - load_base_billings()] BRL
+[deferred_revenue_functions.py:1336 - load_base_billings()] RUB
+[deferred_revenue_functions.py:1336 - load_base_billings()] KRW
+[deferred_revenue_functions.py:1336 - load_base_billings()] SGD
+[deferred_revenue_functions.py:1336 - load_base_billings()] CLP
+[deferred_revenue_functions.py:1336 - load_base_billings()] COP
+[deferred_revenue_functions.py:1336 - load_base_billings()] ARS
+[deferred_revenue_functions.py:1336 - load_base_billings()] INR
+[deferred_revenue_functions.py:1336 - load_base_billings()] PEN
+[deferred_revenue_functions.py:1336 - load_base_billings()] PHP
+[deferred_revenue_functions.py:1336 - load_base_billings()] TWD
+[deferred_revenue_functions.py:1336 - load_base_billings()] THB
+[deferred_revenue_functions.py:1336 - load_base_billings()] MYR
+[deferred_revenue_functions.py:1336 - load_base_billings()] IDR
+[deferred_revenue_functions.py:1336 - load_base_billings()] ILS
+[deferred_revenue_functions.py:1336 - load_base_billings()] NZD
+[deferred_revenue_functions.py:1339 - load_base_billings()] This is the length of the dataframe before removing zeros: 44784
+[deferred_revenue_functions.py:1342 - load_base_billings()] length of billings dataframe after removing zeros: 41941
+[deferred_revenue_functions.py:1344 - load_base_billings()] df.head(10) =    curr        BU Frequency  ... Subscription Term   DC_amount US_amount
+1   ARS  Creative       NaN  ...                 1   -11291.52   -289.26
+2   ARS  Creative       NaN  ...                 1   373766.00   9601.19
+3   ARS  Creative       NaN  ...                12   241380.00   6194.45
+4   ARS  Creative       NaN  ...                 1    -1221.00    -31.07
+5   ARS  Creative       NaN  ...                 1    45799.00   1173.37
+6   ARS  Creative       NaN  ...                 1   -40014.70   -985.24
+7   ARS  Creative       NaN  ...                 1  1705471.00  42032.83
+8   ARS  Creative       NaN  ...                12  1112854.12  27486.58
+9   ARS  Creative       NaN  ...                 1   -14292.80   -351.04
+10  ARS  Creative       NaN  ...                 1   188938.00   4653.43
+
+[10 rows x 11 columns]
+[deferred_revenue_functions.py:1347 - load_base_billings()] Sales Type Value Counts = DEFERRED       35013
+RECOGNIZED      5668
+PRO-SVC-INV     1124
+NON-REV          136
+Name: Sales Type, dtype: int64
+[deferred_revenue_functions.py:1350 - load_base_billings()] Length of the dataframe before removing non-revenue billings: 41941
+[deferred_revenue_functions.py:1354 - load_base_billings()] Length of the dataframe after removing non-revenue billings: 41805
+[deferred_revenue_functions.py:1371 - load_base_billings()] Total number of billings:     41805
+[deferred_revenue_functions.py:1372 - load_base_billings()] Number of recognized revenue billings:  5668
+[deferred_revenue_functions.py:1373 - load_base_billings()] Number of service invoiced billings:    1124
+[deferred_revenue_functions.py:1374 - load_base_billings()] Number of deferred revenue billings:    35013
+[deferred_revenue_functions.py:1382 - load_base_billings()]  gb_rec header :   curr        BU   period  DC_amount  US_amount
+0  ARS  Creative  2019-07    6786.00     155.12
+1  ARS  Creative  2019-08   16472.00     390.02
+2  ARS  Creative  2019-09   19205.00     405.51
+3  ARS  Creative  2019-10   30382.19     532.13
+4  ARS  Creative  2019-11   59049.00    1023.67
+5  ARS  Creative  2019-12   71355.57    1195.94
+6  ARS  Creative  2020-01   79224.95    1323.41
+7  ARS  Creative  2020-02   36596.00     611.42
+8  ARS  Creative  2020-03   49107.00     810.06
+9  ARS  Creative  2020-04   67878.00    1082.16
+[deferred_revenue_functions.py:1388 - load_base_billings()]  gb_svc header :   curr                BU   period   DC_amount  US_amount
+0  AUD  Experience Cloud  2016-01   528857.50  381205.10
+1  AUD  Experience Cloud  2016-02   367175.25  254719.28
+2  AUD  Experience Cloud  2016-03   974604.14  697281.64
+3  AUD  Experience Cloud  2016-04   284306.25  215286.68
+4  AUD  Experience Cloud  2016-05   127172.25   98554.88
+5  AUD  Experience Cloud  2016-06  1364965.00  984510.08
+6  AUD  Experience Cloud  2016-07   937308.26  702518.83
+7  AUD  Experience Cloud  2016-08   632113.75  475127.60
+8  AUD  Experience Cloud  2016-09   793855.90  603498.40
+9  AUD  Experience Cloud  2016-10   392077.97  297718.82
+[deferred_revenue_functions.py:1389 - load_base_billings()]  Group By Service header:    curr                BU   period   DC_amount  US_amount
+0   AUD  Experience Cloud  2016-01   528857.50  381205.10
+1   AUD  Experience Cloud  2016-02   367175.25  254719.28
+2   AUD  Experience Cloud  2016-03   974604.14  697281.64
+3   AUD  Experience Cloud  2016-04   284306.25  215286.68
+4   AUD  Experience Cloud  2016-05   127172.25   98554.88
+5   AUD  Experience Cloud  2016-06  1364965.00  984510.08
+6   AUD  Experience Cloud  2016-07   937308.26  702518.83
+7   AUD  Experience Cloud  2016-08   632113.75  475127.60
+8   AUD  Experience Cloud  2016-09   793855.90  603498.40
+9   AUD  Experience Cloud  2016-10   392077.97  297718.82
+10  AUD  Experience Cloud  2016-11   521839.06  399176.79
+11  AUD  Experience Cloud  2016-12  1087703.30  805407.01
+12  AUD  Experience Cloud  2017-01   434154.00  321983.46
+13  AUD  Experience Cloud  2017-02   437898.04  328988.07
+14  AUD  Experience Cloud  2017-03  1128552.21  867288.93
+[deferred_revenue_functions.py:1396 - load_base_billings()]  type B dataframe    curr                BU   period  DC_amount  US_amount
+0   AUD          Creative  2017-10    8544.00    6837.59
+1   AUD          DX Other  2017-04   13205.00   10082.02
+2   AUD          DX Other  2017-08   27400.00   21259.93
+3   AUD          DX Other  2018-07    6635.40    4908.74
+4   AUD          DX Other  2018-08    7535.00    5561.43
+5   AUD    Document Cloud  2017-12    3283.20    2494.58
+6   AUD    Document Cloud  2018-06    3425.00    2592.18
+7   AUD    Document Cloud  2018-12    3425.00    2483.47
+8   AUD    Document Cloud  2019-03    4375.00    3122.00
+9   AUD  Experience Cloud  2016-01  358720.00  258585.43
+10  AUD  Experience Cloud  2016-02   65454.00   45782.42
+11  AUD  Experience Cloud  2016-03  534646.20  358587.17
+12  AUD  Experience Cloud  2016-04  130450.00   99763.68
+13  AUD  Experience Cloud  2016-05  143240.00  109635.05
+14  AUD  Experience Cloud  2016-06  437495.00  318573.05
+15  AUD  Experience Cloud  2016-07  401600.00  296536.18
+16  AUD  Experience Cloud  2016-08  273640.00  205221.19
+17  AUD  Experience Cloud  2016-09  840903.73  642690.01
+18  AUD  Experience Cloud  2016-10  128244.40   97060.59
+19  AUD  Experience Cloud  2016-11  209291.96  156771.08

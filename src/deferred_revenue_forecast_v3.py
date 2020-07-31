@@ -35,6 +35,8 @@ from scipy.interpolate import interp1d, griddata
 import logging
 from deferred_revenue_functions import *
 
+
+
 """ Creating Logger File for Error Checking """
 logger = logging.getLogger("deferred_logger")
 logger.setLevel("DEBUG")
@@ -135,6 +137,7 @@ with open("../data/processed/all_billings2.p", "wb") as f:
 
 
 # df_billings = pickle.load( open('../data/processed/all_billings.p', 'rb' ))
+
 
 
 #  Loading All of the other information we need here from excel files

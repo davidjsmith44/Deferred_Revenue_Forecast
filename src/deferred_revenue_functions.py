@@ -6,9 +6,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import logging
 
+from sklearn.linear_model import LinearRegression
+
 plt.style.use("ggplot")
 
 logger = logging.getLogger("deferred_logger")
+
+
 
 def load_FX_data(FX_rates_filename, FX_rates_sheetname="to_matlab"):
     df_FX_rates = pd.read_excel(FX_rates_filename, sheet_name=FX_rates_sheetname)
@@ -22,7 +26,6 @@ def load_FX_data(FX_rates_filename, FX_rates_sheetname="to_matlab"):
 
 
 def load_curr_map(curr_map_filename, curr_map_sheetname="curr_map"):
-
     df_curr_map = pd.read_excel(curr_map_filename, sheet_name=curr_map_sheetname)
     df_curr_map["Country"] = df_curr_map["Country"].str.replace(
         "\(MA\)", "", case=False
@@ -56,7 +59,7 @@ def add_billings_periods(df_billings):
 
             df_slice = df_billings[
                 (df_billings["BU"] == this_BU) & (df_billings["curr"] == this_curr)
-            ].copy()
+                ].copy()
 
             list_periods = df_slice["period"].unique()
             set_periods = set(list_periods)
@@ -103,7 +106,7 @@ def load_ADBE_cal(ADBE_cal_filename, ADBE_cal_sheetname="ADBE_cal"):
     df_cal["p2digit"] = df_cal["p2digit"].str.zfill(2)
 
     df_cal["period_match"] = (
-        df_cal["Year"].astype(str) + "-" + df_cal["p2digit"].astype(str)
+            df_cal["Year"].astype(str) + "-" + df_cal["p2digit"].astype(str)
     )
 
     df_cal.drop(["p2digit"], axis=1, inplace=True)
@@ -132,7 +135,6 @@ def load_ADBE_cal(ADBE_cal_filename, ADBE_cal_sheetname="ADBE_cal"):
 
 
 def convert_fcst(df_fcst, df_FX_rates, list_columns, new_columns):
-
     for i in list_columns:
         new_column = i + "US"
         df_fcst[new_column] = 0
@@ -157,7 +159,7 @@ def convert_fcst(df_fcst, df_FX_rates, list_columns, new_columns):
 
         this_slice = df_fcst[
             (df_fcst["BU"] == this_BU) & (df_fcst["curr"] == this_curr)
-        ].copy()
+            ].copy()
 
         for col in list_columns:
             new_column = col + "US"
@@ -326,7 +328,6 @@ def merge_new_dataframe(old_df, new_df, new_column):
 
 
 def clean_df_columns(df):
-
     # clean up NaNs before adding
     df = df.fillna(value=0)
 
@@ -405,7 +406,6 @@ def remove_bad_currencies(df, model_dict):
 
 
 def load_FX_fwds(FX_fwds_filename, FX_fwds_sheetname="forward_data"):
-
     df_FX_fwds = pd.read_excel(
         FX_fwds_filename, sheet_name=FX_fwds_sheetname, skiprows=1, usecols="C,G",
     )
@@ -429,7 +429,6 @@ def find_unique_curr_and_BU(df_billings):
 
 
 def create_billing_forecast(df_billings, df_fcst):
-
     v_un_BU, v_un_curr = find_unique_curr_and_BU(df_billings)
 
     # new Vectorized approach (sort of)
@@ -442,7 +441,7 @@ def create_billing_forecast(df_billings, df_fcst):
         print("working on BU: {0}  and currency: {1}".format(this_BU, this_curr))
         df_slice = df_billings[
             (df_billings["BU"] == this_BU) & (df_billings["curr"] == this_curr)
-        ].copy()
+            ].copy()
         list_bill_periods = df_billings["period"].unique()
         list_bill_periods.sort()
 
@@ -560,7 +559,6 @@ def create_billing_forecast(df_billings, df_fcst):
         this_y = this_y.reshape(-1, 1)
 
         if sum(this_y) != 0:
-
             period_weeks = df_slice["Period_Weeks"].copy()
             period_weeks = period_weeks.to_numpy()
             period_weeks = period_weeks.reshape(-1, 1)
@@ -574,7 +572,7 @@ def create_billing_forecast(df_billings, df_fcst):
 
             fcst_slice = df_fcst[
                 (df_fcst["BU"] == this_BU) & (df_fcst["curr"] == this_curr)
-            ].copy()
+                ].copy()
             fcst_weeks = fcst_slice["Period_Weeks"].to_numpy()
             fcst_weeks = fcst_weeks.reshape(-1, 1)
 
@@ -685,7 +683,6 @@ def build_monthly_forecast(X, y):
 
 
 def load_bookings(bookings_filename, bookings_sheetname="source"):
-
     df_bookings = pd.read_excel(bookings_filename, bookings_sheetname)
 
     df_bookings.head(10)
@@ -755,7 +752,6 @@ def load_bookings(bookings_filename, bookings_sheetname="source"):
 
 
 def clean_bookings(df_bookings):
-
     # ### There are new BUs now!
 
     # The pivot table Karen is using only look at 4 EBUs
@@ -846,7 +842,6 @@ def clean_bookings(df_bookings):
 
 
 def build_deferred_waterfall(df_billings):
-
     # Finding the unique currencies and BUs to slice the dataframe and build a waterfall for each
     v_un_BU, v_un_curr = find_unique_curr_and_BU(df_billings)
 
@@ -864,7 +859,7 @@ def build_deferred_waterfall(df_billings):
         print("working on BU: {0}  and currency: {1}".format(this_BU, this_curr))
         this_slice = df_billings[
             (df_billings["BU"] == this_BU) & (df_billings["curr"] == this_curr)
-        ].copy()
+            ].copy()
 
         df_this_wf = this_slice[["curr", "BU", "period"]].copy()
         for item in wf_columns:
@@ -1011,7 +1006,6 @@ def bring_wf_forward(df):
 
 
 def add_type_A_billings(billings_filename, type_A_sheetname, df, model_dict):
-
     temp_flat_DC, temp_flat_US = load_and_clean_type_A(
         billings_filename, model_dict, type_A_sheetname
     )
@@ -1022,9 +1016,8 @@ def add_type_A_billings(billings_filename, type_A_sheetname, df, model_dict):
 
 
 def load_and_clean_type_A(
-    billings_filename, model_dict, type_A_sheetname="type_A_no_config"
+        billings_filename, model_dict, type_A_sheetname="type_A_no_config"
 ):
-
     df_A = pd.read_excel(billings_filename, sheet_name=type_A_sheetname)
 
     df_A.rename(
@@ -1140,23 +1133,22 @@ def load_and_clean_type_A(
     temp_flat_DC.head(20)
 
     # Quick check that we have not created duplicate column entries (for example two entries for a period with same BU and currency)
-    #df_test_dup = df.copy()
-    #orig_len = len(df_test_dup)
-    #print("Original Length of the dataframe before duplicate test: ", orig_len)
+    # df_test_dup = df.copy()
+    # orig_len = len(df_test_dup)
+    # print("Original Length of the dataframe before duplicate test: ", orig_len)
 
-    #df_test_dup = df_test_dup.drop_duplicates(subset=["curr", "BU", "period"])
-    #print(
+    # df_test_dup = df_test_dup.drop_duplicates(subset=["curr", "BU", "period"])
+    # print(
     #    "New length of database after duplicates have been removed: ", len(df_test_dup)
-    #)
+    # )
 
-    #if orig_len != len(df_test_dup):
+    # if orig_len != len(df_test_dup):
     #    print("We had duplicates in the dataframe! Look into why")
 
     return temp_flat_DC, temp_flat_US
 
 
 def merge_billings_with_A(temp_flat_DC, temp_flat_US, df):
-
     # ###### Merging the billings dataframe with the temp_flat_DC dataframe and and temp_flat_US dataframe and filling in any blanks with zero
     df_with_A = pd.merge(
         df,
@@ -1186,41 +1178,41 @@ def merge_billings_with_A(temp_flat_DC, temp_flat_US, df):
 
     # ###### Combining columns form the different data sources (they get merged with different names) and cleaning up the columns
     df_with_all["deferred_1M_DC"] = (
-        df_with_all["deferred_1M_DC_x"] + df_with_all["deferred_1M_DC_y"]
+            df_with_all["deferred_1M_DC_x"] + df_with_all["deferred_1M_DC_y"]
     )
     df_with_all["deferred_3M_DC"] = (
-        df_with_all["deferred_3M_DC_x"] + df_with_all["deferred_3M_DC_y"]
+            df_with_all["deferred_3M_DC_x"] + df_with_all["deferred_3M_DC_y"]
     )
     df_with_all["deferred_6M_DC"] = (
-        df_with_all["deferred_6M_DC_x"] + df_with_all["deferred_6M_DC_y"]
+            df_with_all["deferred_6M_DC_x"] + df_with_all["deferred_6M_DC_y"]
     )
     df_with_all["deferred_1Y_DC"] = (
-        df_with_all["deferred_1Y_DC_x"] + df_with_all["deferred_1Y_DC_y"]
+            df_with_all["deferred_1Y_DC_x"] + df_with_all["deferred_1Y_DC_y"]
     )
     df_with_all["deferred_2Y_DC"] = (
-        df_with_all["deferred_2Y_DC_x"] + df_with_all["deferred_2Y_DC_y"]
+            df_with_all["deferred_2Y_DC_x"] + df_with_all["deferred_2Y_DC_y"]
     )
     df_with_all["deferred_3Y_DC"] = (
-        df_with_all["deferred_3Y_DC_x"] + df_with_all["deferred_3Y_DC_y"]
+            df_with_all["deferred_3Y_DC_x"] + df_with_all["deferred_3Y_DC_y"]
     )
 
     df_with_all["deferred_1M_US"] = (
-        df_with_all["deferred_1M_US_x"] + df_with_all["deferred_1M_US_y"]
+            df_with_all["deferred_1M_US_x"] + df_with_all["deferred_1M_US_y"]
     )
     df_with_all["deferred_3M_US"] = (
-        df_with_all["deferred_3M_US_x"] + df_with_all["deferred_3M_US_y"]
+            df_with_all["deferred_3M_US_x"] + df_with_all["deferred_3M_US_y"]
     )
     df_with_all["deferred_6M_US"] = (
-        df_with_all["deferred_6M_US_x"] + df_with_all["deferred_6M_US_y"]
+            df_with_all["deferred_6M_US_x"] + df_with_all["deferred_6M_US_y"]
     )
     df_with_all["deferred_1Y_US"] = (
-        df_with_all["deferred_1Y_US_x"] + df_with_all["deferred_1Y_US_y"]
+            df_with_all["deferred_1Y_US_x"] + df_with_all["deferred_1Y_US_y"]
     )
     df_with_all["deferred_2Y_US"] = (
-        df_with_all["deferred_2Y_US_x"] + df_with_all["deferred_2Y_US_y"]
+            df_with_all["deferred_2Y_US_x"] + df_with_all["deferred_2Y_US_y"]
     )
     df_with_all["deferred_3Y_US"] = (
-        df_with_all["deferred_3Y_US_x"] + df_with_all["deferred_3Y_US_y"]
+            df_with_all["deferred_3Y_US_x"] + df_with_all["deferred_3Y_US_y"]
     )
 
     df_with_all.drop(
@@ -1607,10 +1599,10 @@ def interp_FX_fwds(df_FX_rates):
         fwds = [row["Spot"], row["FWD_3M"], row["FWD_6M"], row["FWD_9M"], row["FWD_1Y"]]
         interp_fwds = np.interp(interp_time, fwd_times, fwds)
         for i in np.arange(len(new_cols)):
-
             df_FX_rates.loc[index, new_cols[i]] = interp_fwds[i]
 
     return df_FX_rates
+
 
 def test_df_duplicates(df):
     ''' Testing whether we have duplicates in our merged dataframe'''
@@ -1618,18 +1610,18 @@ def test_df_duplicates(df):
     orig_len = len(df_test_dup)
     print("Original Length of the dataframe before duplicate test: ", orig_len)
 
-    df_test_dup =df_test_dup.drop_duplicates(subset=['curr', 'BU', 'period'])
-    print('New length of database after duplicates have been removed: ',len(df_test_dup))
+    df_test_dup = df_test_dup.drop_duplicates(subset=['curr', 'BU', 'period'])
+    print('New length of database after duplicates have been removed: ', len(df_test_dup))
 
-    if orig_len!=len(df_test_dup):
+    if orig_len != len(df_test_dup):
         print('We had duplicates in the dataframe! Look into why')
         error_duplicates = 1
     else:
         error_duplicates = 0
     return error_duplicates
 
-def merge_bookings_with_curr(df_bookings, df_curr_map):
 
+def merge_bookings_with_curr(df_bookings, df_curr_map):
     list_book_ctry = df_bookings["country"].unique()
     print("Countries in the bookings file: \n", list_book_ctry)
 
@@ -1657,6 +1649,7 @@ def merge_bookings_with_curr(df_bookings, df_curr_map):
     df_bookings = df_bookings.drop("Country", axis=1)
 
     return df_bookings
+
 
 def build_booking_periods(df_bookings):
     '''
@@ -1716,12 +1709,11 @@ def build_booking_periods(df_bookings):
     # Fills in the df_book_period dataframe with the quarterly bookings numbers for each BU and currency
     # fill in the quarters
     for i in range(len(df_book_period["BU"])):
-
         this_BU = df_book_period["BU"][i]
         this_curr = df_book_period["curr"][i]
         this_slice = df_bookings[
             (df_bookings["BU"] == this_BU) & (df_bookings["Currency"] == this_curr)
-        ]
+            ]
 
         this_Q1 = this_slice[this_slice["Quarter"] == "Q1 2020"]
         sum_Q1 = this_Q1["US_amount"].sum()
@@ -1738,7 +1730,6 @@ def build_booking_periods(df_bookings):
         this_Q4 = this_slice[this_slice["Quarter"] == "Q4 2020"]
         sum_Q4 = this_Q4["US_amount"].sum()
         df_book_period["Q4"].loc[i] = sum_Q4
-
 
     df_book_period.head(30)
 
@@ -1809,7 +1800,7 @@ def build_booking_periods(df_bookings):
 
         this_slice = df_billings[
             (df_billings["BU"] == this_BU) & (df_billings["curr"] == this_curr)
-        ]
+            ]
 
         for j in range(len(list_periods)):
             this_period = list_periods[j]
@@ -1819,60 +1810,59 @@ def build_booking_periods(df_bookings):
             df_book_period.loc[[i], [this_header]] = this_P_slice["deferred_1Y_DC"].sum()
 
     df_book_period["bill_Q1_sum"] = (
-        df_book_period["P01"] + df_book_period["P02"] + df_book_period["P03"]
+            df_book_period["P01"] + df_book_period["P02"] + df_book_period["P03"]
     )
     df_book_period["bill_Q2_sum"] = (
-        df_book_period["P04"] + df_book_period["P05"] + df_book_period["P06"]
+            df_book_period["P04"] + df_book_period["P05"] + df_book_period["P06"]
     )
     df_book_period["bill_Q3_sum"] = (
-        df_book_period["P07"] + df_book_period["P08"] + df_book_period["P09"]
+            df_book_period["P07"] + df_book_period["P08"] + df_book_period["P09"]
     )
     df_book_period["bill_Q4_sum"] = (
-        df_book_period["P10"] + df_book_period["P11"] + df_book_period["P12"]
+            df_book_period["P10"] + df_book_period["P11"] + df_book_period["P12"]
     )
 
     df_book_period["P01"] = (
-        df_book_period["Q1"] * df_book_period["P01"] / df_book_period["bill_Q1_sum"]
+            df_book_period["Q1"] * df_book_period["P01"] / df_book_period["bill_Q1_sum"]
     )
     df_book_period["P02"] = (
-        df_book_period["Q1"] * df_book_period["P02"] / df_book_period["bill_Q1_sum"]
+            df_book_period["Q1"] * df_book_period["P02"] / df_book_period["bill_Q1_sum"]
     )
     df_book_period["P03"] = (
-        df_book_period["Q1"] * df_book_period["P03"] / df_book_period["bill_Q1_sum"]
+            df_book_period["Q1"] * df_book_period["P03"] / df_book_period["bill_Q1_sum"]
     )
 
     df_book_period["P04"] = (
-        df_book_period["Q2"] * df_book_period["P04"] / df_book_period["bill_Q2_sum"]
+            df_book_period["Q2"] * df_book_period["P04"] / df_book_period["bill_Q2_sum"]
     )
     df_book_period["P05"] = (
-        df_book_period["Q2"] * df_book_period["P05"] / df_book_period["bill_Q2_sum"]
+            df_book_period["Q2"] * df_book_period["P05"] / df_book_period["bill_Q2_sum"]
     )
     df_book_period["P06"] = (
-        df_book_period["Q2"] * df_book_period["P06"] / df_book_period["bill_Q2_sum"]
+            df_book_period["Q2"] * df_book_period["P06"] / df_book_period["bill_Q2_sum"]
     )
 
     df_book_period["P07"] = (
-        df_book_period["Q3"] * df_book_period["P07"] / df_book_period["bill_Q3_sum"]
+            df_book_period["Q3"] * df_book_period["P07"] / df_book_period["bill_Q3_sum"]
     )
     df_book_period["P08"] = (
-        df_book_period["Q3"] * df_book_period["P08"] / df_book_period["bill_Q3_sum"]
+            df_book_period["Q3"] * df_book_period["P08"] / df_book_period["bill_Q3_sum"]
     )
     df_book_period["P09"] = (
-        df_book_period["Q3"] * df_book_period["P09"] / df_book_period["bill_Q3_sum"]
+            df_book_period["Q3"] * df_book_period["P09"] / df_book_period["bill_Q3_sum"]
     )
 
     df_book_period["P10"] = (
-        df_book_period["Q4"] * df_book_period["P10"] / df_book_period["bill_Q4_sum"]
+            df_book_period["Q4"] * df_book_period["P10"] / df_book_period["bill_Q4_sum"]
     )
     df_book_period["P11"] = (
-        df_book_period["Q4"] * df_book_period["P11"] / df_book_period["bill_Q4_sum"]
+            df_book_period["Q4"] * df_book_period["P11"] / df_book_period["bill_Q4_sum"]
     )
     df_book_period["P12"] = (
-        df_book_period["Q4"] * df_book_period["P12"] / df_book_period["bill_Q4_sum"]
+            df_book_period["Q4"] * df_book_period["P12"] / df_book_period["bill_Q4_sum"]
     )
 
     df_book_period.tail(10)
-
 
     # ###### Cleaning up the dataframe by dropping the columns we no longer need
     df_book_period.drop(
@@ -1882,6 +1872,7 @@ def build_booking_periods(df_bookings):
     df_book_period.columns
 
     return df_book_period
+
 
 def convert_bookings_to_DC(df_book_period, df_FX_fwds):
     '''
@@ -1917,11 +1908,9 @@ def convert_bookings_to_DC(df_book_period, df_FX_fwds):
     df_book_period["P11_DC"] = df_book_period["P11"] * df_book_period["FX_fwd_rate"]
     df_book_period["P12_DC"] = df_book_period["P12"] * df_book_period["FX_fwd_rate"]
 
-
     # df_book_period.head(10)
     # df_book_period.sample(10)
     df_book_period.tail(10)
-
 
     # ##### The df_book_period dataframe now has columns for bookings each period in both local currency and document currency
 
