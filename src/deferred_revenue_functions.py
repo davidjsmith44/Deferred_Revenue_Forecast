@@ -4,7 +4,7 @@ This file contains the functions used in the deferred revenue forecast
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import logging
+
 
 from sklearn.linear_model import LinearRegression
 
@@ -1286,6 +1286,7 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     df.rename(
         index=str,
         columns={
+            "Contract Duration in Month": "duration",
             "Document Currency": "curr",
             "Enterprise BU Desc": "BU",
             "Invoice Fiscal Year Period Desc": "period",
@@ -1293,22 +1294,20 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
             "Product Config Type": "config",
             "Rev Rec Category": "rev_req_type",
             "Rule For Bill Date": "rebill_rule",
-            "Sales Document Type": "sales_doc_type",
+            "Sales Document Type": "sales_doc",
             "Sales Type": "sales_type",
+            "Subscription Term": "sub_term",
             "Completed Sales ( DC )": "DC_amount",
             "Completed Sales": "US_amount",
         },
         inplace=True,
     )
 
-    df = df.drop(columns = ['Frequency', 'Sales Document Type Desc'])
-    logger.debug(f" df_columns = {df.columns}")
-
     # Removing currencies with less than n entries
     vc = df["curr"].value_counts()
     keep_these = vc.values > 20
     keep_curr = vc[keep_these]
-    a = keep_curr.index
+    list_keepers = keep_curr.index
     remove_these = vc[vc.values <= 20].index
     model_dict = {"curr_removed": list(vc[remove_these].index)}
     delete_curr = list(remove_these)
@@ -1316,51 +1315,18 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     if "TRY" not in model_dict["curr_removed"]:
         model_dict["curr_removed"].append("TRY")
         delete_curr.append("TRY")
-        a = a.drop("TRY")
+        list_keepers = list_keepers.drop("TRY")
 
-    logger.debug(f"Model dictionary = {model_dict}")
-    logger.debug(f"length of billings data before currencies removed = {len(df)}")
-    df = df[df["curr"].isin(a)]
-    logger.debug(f"length of billings data AFTER currencies removed = {len(df)}")
+    df = df[df["curr"].isin(list_keepers)]
 
-    logger.debug("---Removing infrequent currencies from billings history---")
-    logger.debug(f"Total number of currencies in the base billings file: {len(vc)}")
-    if len(model_dict["curr_removed"]) == 0:
-        logger.debug("No currencies were removed, all contained 20 or more billings")
-        logger.debug("Currencies in the base billings file")
-        for item in a:
-            logger.debug(a[item])
-    else:
-        logger.debug(f'\n Currencies were removed: {len(model_dict["curr_removed"])}')
-
-        for item in remove_these:
-            logger.debug(f"{item}")
-
-        logger.debug(f"\n\n Remaining currencies: {len(a)}")
-        for item in a:
-            logger.debug(item)
-
-    logger.debug(
-        f"This is the length of the dataframe before removing zeros: {len(df)}"
-    )
+    #clearing out zero amounts
     df = df[df["DC_amount"] != 0]
-    logger.debug(f"length of billings dataframe after removing zeros: {len(df)}")
-
-    logger.debug(f"df.head(10) = {df.head(10)}")
 
     # Clearing out the Non-Revenue billings from the file
-    logger.debug(f"Sales Type Value Counts = {df['Sales Type'].value_counts()}")
-
-    logger.debug(
-        f"Length of the dataframe before removing non-revenue billings: {len(df)}"
-    )
+    # TODO: Change this section here. There is no corresponding NON-REV type
     df = df[df["Sales Type"] != "NON-REV"]
-    logger.debug(
-        f"Length of the dataframe after removing non-revenue billings: {len(df)}"
-    )
 
     # ## Grouping the billings by sales type
-
     # Grouping the data by the <b> Sales Type </b> field
     #  - <i>'RECOGNIZED'</i> sales are perpetual and go straight to revenue without hitting deferred
     #  - <i>'PRO-SVC-INV'</i> professional services that are invoiced and go to revenue directly when invoiced
@@ -1368,15 +1334,18 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     #
     #  #### Below we are creating a seperate dataframe for each of the Sales Types
     #
+    list_IR = ['IR', 'IR-NA', 'LFB']
+    list_service = ['CR', 'CR-NA']
+    list_deferred = ['RR', 'RR-NA']
+    list_hybrid = ['BNDL']
 
-    rec = df[df["Sales Type"] == "RECOGNIZED"].copy()
-    svc = df[df["Sales Type"] == "PRO-SVC-INV"].copy()
-    dfr = df[df["Sales Type"] == "DEFERRED"].copy()
+    rec = df[df["POB_type"] isin(list_IR)].copy()
+    svc = df[df["POB_type"] isin(list_service)].copy()
+    dfr = df[df["POB_type"] isin(list_deferred)].copy()
+    df_hyb = df[df["POB_type"] isin(list_hybrid)].copy()
 
-    logger.debug(f"Total number of billings:     {len(df)}")
-    logger.debug(f"Number of recognized revenue billings:  {len(rec)}")
-    logger.debug(f"Number of service invoiced billings:    {len(svc)}")
-    logger.debug(f"Number of deferred revenue billings:    {len(dfr)}")
+    # TODO: Check that I can find the blank values in POB_type
+    
 
     # Recognized Revenue
     # Below we are grouping the rec dataframe by Currency, Business Unit and Period and cleaning up the data we do not need. Since the recognized revenue go directly to revenue, there is no contract that will renew and need to be modeled in the future.
@@ -1384,21 +1353,19 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     # testing groupby object
     gb_rec = rec.groupby(["curr", "BU", "period"], as_index=False).sum()
     gb_rec.drop(labels="Subscription Term", axis=1, inplace=True)
-    logger.debug(f" gb_rec header : {gb_rec.head(10)}")
+
 
     # Service Billings
     # Below we are grouping the svc dataframe by Currency, Business Unit and Period and cleaning up the data we do not need. Since the service billings go directly to revenue, there is no contract that will renew and need to be modeled in the future.
     gb_svc = svc.groupby(["curr", "BU", "period"], as_index=False).sum()
     gb_svc.drop(labels="Subscription Term", axis=1, inplace=True)
-    logger.debug(f" gb_svc header : {gb_svc.head(10)}")
-    logger.debug(f" Group By Service header: {gb_svc.head(15)}")
 
     # Deffered Billings
     # Type B Billings
     dfr_b = dfr[dfr["rev_req_type"] == "B"].copy()
     gb_b = dfr_b.groupby(["curr", "BU", "period"], as_index=False).sum()
     gb_b.drop(labels="Subscription Term", axis=1, inplace=True)
-    logger.debug(f" type B dataframe {gb_b.head(20)}")
+
 
     # #### Type A Billings
     #
