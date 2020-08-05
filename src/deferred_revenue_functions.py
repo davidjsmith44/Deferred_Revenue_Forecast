@@ -1286,7 +1286,7 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     df.rename(
         index=str,
         columns={
-            "Contract Duration in Month": "duration",
+            "Contrct Duration in Months": "duration",
             "Document Currency": "curr",
             "Enterprise BU Desc": "BU",
             "Invoice Fiscal Year Period Desc": "period",
@@ -1322,11 +1322,11 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     #clearing out zero amounts
     df = df[df["DC_amount"] != 0]
 
-    # Clearing out the Non-Revenue billings from the file
-    # TODO: Change this section here. There is no corresponding NON-REV type
-    df = df[df["Sales Type"] != "NON-REV"]
+    # The new tableau database that uses POB type does NOT have a NON-REV type
+    # Just going to comment this out
+    # df = df[df["Sales Type"] != "NON-REV"]
 
-    # ## Grouping the billings by sales type
+    # ## Grouping the billings by POB Type
     # Grouping the data by the <b> Sales Type </b> field
     #  - <i>'RECOGNIZED'</i> sales are perpetual and go straight to revenue without hitting deferred
     #  - <i>'PRO-SVC-INV'</i> professional services that are invoiced and go to revenue directly when invoiced
@@ -1338,33 +1338,34 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     list_service = ['CR', 'CR-NA']
     list_deferred = ['RR', 'RR-NA']
     list_hybrid = ['BNDL']
+    list_all = list_IR + list_service + list_deferred + list_hybrid
 
-    rec = df[df["POB_type"] isin(list_IR)].copy()
-    svc = df[df["POB_type"] isin(list_service)].copy()
-    dfr = df[df["POB_type"] isin(list_deferred)].copy()
-    df_hyb = df[df["POB_type"] isin(list_hybrid)].copy()
-
-    # TODO: Check that I can find the blank values in POB_type
-    
+    rec = df[df["POB_type"].isin(list_IR)].copy()
+    svc = df[df["POB_type"].isin(list_service)].copy()
+    dfr = df[df["POB_type"].isin(list_deferred)].copy()
+    hyb = df[df["POB_type"].isin(list_hybrid)].copy()
+    blank = df[~df["POB_type"].isin(list_all)].copy()
 
     # Recognized Revenue
     # Below we are grouping the rec dataframe by Currency, Business Unit and Period and cleaning up the data we do not need. Since the recognized revenue go directly to revenue, there is no contract that will renew and need to be modeled in the future.
 
     # testing groupby object
     gb_rec = rec.groupby(["curr", "BU", "period"], as_index=False).sum()
-    gb_rec.drop(labels="Subscription Term", axis=1, inplace=True)
-
+    gb_rec.drop(labels=["duration", "sub_term"] , axis=1, inplace=True)
 
     # Service Billings
     # Below we are grouping the svc dataframe by Currency, Business Unit and Period and cleaning up the data we do not need. Since the service billings go directly to revenue, there is no contract that will renew and need to be modeled in the future.
     gb_svc = svc.groupby(["curr", "BU", "period"], as_index=False).sum()
-    gb_svc.drop(labels="Subscription Term", axis=1, inplace=True)
+    gb_svc.drop(labels="sub_term", axis=1, inplace=True)
 
     # Deffered Billings
     # Type B Billings
-    dfr_b = dfr[dfr["rev_req_type"] == "B"].copy()
-    gb_b = dfr_b.groupby(["curr", "BU", "period"], as_index=False).sum()
-    gb_b.drop(labels="Subscription Term", axis=1, inplace=True)
+    # THERE ARE NO LONGER ANY DEFERRED TYPE B BILLINGS!!!
+    # these are now all service based billings and the POB type determines if they sit in deferred
+    # such as CR or CR-NA billings or go immediately to revenue IR, IR-NA, LFB
+    #dfr_b = dfr[dfr["rev_req_type"] == "B"].copy()
+    #gb_b = dfr_b.groupby(["curr", "BU", "period"], as_index=False).sum()
+    #gb_b.drop(labels="Subscription Term", axis=1, inplace=True)
 
 
     # #### Type A Billings
