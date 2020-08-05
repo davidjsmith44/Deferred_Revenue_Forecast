@@ -1289,14 +1289,19 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
             "Document Currency": "curr",
             "Enterprise BU Desc": "BU",
             "Invoice Fiscal Year Period Desc": "period",
+            "POB Type": "POB_type",
             "Product Config Type": "config",
             "Rev Rec Category": "rev_req_type",
             "Rule For Bill Date": "rebill_rule",
+            "Sales Document Type": "sales_doc_type",
+            "Sales Type": "sales_type",
             "Completed Sales ( DC )": "DC_amount",
             "Completed Sales": "US_amount",
         },
         inplace=True,
     )
+
+    df = df.drop(columns = ['Frequency', 'Sales Document Type Desc'])
     logger.debug(f" df_columns = {df.columns}")
 
     # Removing currencies with less than n entries
@@ -1651,7 +1656,7 @@ def merge_bookings_with_curr(df_bookings, df_curr_map):
     return df_bookings
 
 
-def build_booking_periods(df_bookings):
+def build_booking_periods(df_bookings, df_billings):
     '''
     STEPS
         Creating data to add to the billings dataframe to incorporate period by period billings

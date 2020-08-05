@@ -29,56 +29,57 @@
 #
 
 """ Import Functions """
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
 
 plt.style.use("ggplot")
 import pickle
 from math import ceil
 from sklearn.linear_model import LinearRegression
 from scipy.interpolate import interp1d, griddata
-import logging
+#import logging
 import json
 from deferred_revenue_functions import *
 
 """ Creating Logger File for Error Checking """
-#logger = logging.getLogger("deferred_logger")
-#logger.setLevel("DEBUG")
-#logging.basicConfig(
+# logger = logging.getLogger("deferred_logger")
+# logger.setLevel("DEBUG")
+# logging.basicConfig(
 #    filename="example.log",
 #    level=logging.DEBUG,
 #    format="[%(filename)s:%(lineno)s - %(funcName)15s()] %(message)s",
-#)
+# )
 
 
 # ## Step 1: Processing Base Billings Data
-#logger.debug('Processing the Base Billings Data')
+# logger.debug('Processing the Base Billings Data')
 
 """ Data File Names and sheet names are contained in the config.json file """
 
-with open('config.json') as json_file:
-   config_dict = json.load(json_file)
+with open('../data/Data_2020_P06/config.json') as json_file:
+    config_dict = json.load(json_file)
 
+
+print(config_dict)
 """ Loading up the input files """
 # Adobe Financial Calendar to get period start and end dates
 df_cal = load_ADBE_cal(config_dict['ADBE_cal']['direct_filename'],
                        config_dict['ADBE_cal']['sheetname'])
 
 # FX Rates
-filename_FX = config_dict['path_to_data']+config_dict['FX_rates']['filename']
+filename_FX = config_dict['path_to_data'] + config_dict['FX_rates']['filename']
 df_FX_rates = load_FX_data(filename_FX, config_dict['FX_rates']['sheetname'])
 
 # FX forwards
-filename_FX_fwds = config_dict['path_to_data']+config_dict['FX_rates']['filename']
-df_FX_fwds = load_FX_fwds(filename_FX_fwds, config_dict['FX_rates']['sheetname'])
+filename_FX_fwds = config_dict['path_to_data'] + config_dict['FX_forwards']['filename']
+df_FX_fwds = load_FX_fwds(filename_FX_fwds, config_dict['FX_forwards']['sheetname'])
 
 #  Currency Map
 filename_curr_map = config_dict['path_to_data'] + config_dict['curr_map']['filename']
 df_curr_map = load_curr_map(filename_curr_map, config_dict['curr_map']['sheetname'])
 
 # Base Billings File (not type A)
-filename_billings = config_dict['path_to_data']+ config_dict['billings']['filename']
+filename_billings = config_dict['path_to_data'] + config_dict['billings']['filename']
 df, model_dict = load_base_billings(filename_billings, config_dict['billings']['base_sheetname'])
 
 df_billings = add_type_A_billings(filename_billings,
@@ -94,12 +95,12 @@ df_billings = df_billings.sort_values(
     ["curr", "BU", "period"], ascending=(True, True, True)
 )
 
-#with open("../data/processed/all_billings2.p", "wb") as f:
+# with open("../data/processed/all_billings2.p", "wb") as f:
 #    pickle.dump(df_billings, f)
 
 
 # ##### Bookings Forecast
-filename_bookings = config_dict['path_to_data']+ config_dict['bookings']['filename']
+filename_bookings = config_dict['path_to_data'] + config_dict['bookings']['filename']
 df_bookings = load_bookings(filename_bookings, config_dict['bookings']['sheetname'])
 
 # ### Merging the bookings country data to a currency using the currency map dataframe (df_curr_map)
@@ -156,7 +157,6 @@ df_billings = df_billings.merge(
     df_cal, how="left", left_on="period", right_on="period_match"
 )
 
-
 df_billings.drop(["period_match"], axis=1, inplace=True)
 
 df_billings.head(5)
@@ -177,7 +177,7 @@ input_df_dict = {
     "FX_rates": df_FX_rates,
 }
 
-#pickle.dump(input_df_dict, open("../data/processed/all_inputs2.p", "wb"))
+# pickle.dump(input_df_dict, open("../data/processed/all_inputs2.p", "wb"))
 
 # Cleaning up the billings dataframe
 # - the billings dataframe does not contain every period if there are no bookings within a period.
@@ -195,12 +195,11 @@ print(
     len(df_billings),
 )
 
-
 # ## Cleaning up the bookings dataframe to be incorporated into the deferred model
 # - The billings dataframe is by period
 # - the bookings dataframe contains net new bookings by quarter
 #
-df_book_period = build_booking_periods(df_billings)
+df_book_period = build_booking_periods(df_bookings, df_billings)
 
 """ Need to build a simple test of the booking periods to make sure they are correct """
 test_ec = df_book_period[df_book_period["BU"] == "Experience Cloud"]
@@ -216,9 +215,7 @@ print(
     test_ec["P07"].sum() + test_ec["P08"].sum() + test_ec["P09"].sum(),
 )
 
-
 test_ec["Q3"].sum()
-
 
 # ##### Converting these billings to local currency based on the forward rates at the time the plan was created
 # The booking forecast is in USD. I need to map this back into Document currency to forecast the billings in document currency. The 'plan' forward rates should have been used to create the initial USD amounts, so this is consistent with how we build the plan and bookings forecast
@@ -263,7 +260,6 @@ for i in range(len(v_un_BU)):
 
 print("This is the length of the vectors: ", len(v_BU_2_df))
 
-
 # ##### Creating a list of the columns that we need to use in the df_billings dataframe (They contain document currency billings)
 
 list_all_columns = df_billings.columns
@@ -273,7 +269,6 @@ for i in list_all_columns:
 
     if i[-2:] == "DC":
         list_keepers.append(i)
-
 
 # ##### Creating the df_fcst dataframe with every currency, BU and period we need
 df_fcst = pd.DataFrame({"curr": v_curr_2_df, "BU": v_BU_2_df, "period": v_period_2_df})
@@ -285,7 +280,6 @@ for col in list_keepers:
 
 df_fcst = df_fcst.merge(df_cal, how="left", left_on="period", right_on="period_match")
 df_fcst.drop(["period_match"], axis=1, inplace=True)
-
 
 # ### The functions below create the billings forecast by looking up the historical billings and having them renew
 # NOTE: The monthly billings are using a linear regression model on the monthly billings / weeks in the month
@@ -301,12 +295,8 @@ df_fcst.drop(["period_match"], axis=1, inplace=True)
 
 df_fcst = create_billing_forecast(df_billings, df_fcst)
 
-
-
 test_output = df_fcst[(df_fcst["curr"] == "EUR") & (df_fcst["BU"] == "Creative")]
 test_output.head(20)
-
-
 
 # ### saving the initial work here
 
@@ -326,15 +316,12 @@ input_df_dict = {
     "forecast": df_fcst,
 }
 
-#pickle.dump(input_df_dict, open("../data/processed/initial_forecast2.p", "wb"))
+# pickle.dump(input_df_dict, open("../data/processed/initial_forecast2.p", "wb"))
 
 
 print(df_billings.head(5))
 
-
 print(df_fcst.tail(5))
-
-
 
 # ##### Creating USD amounts for the forecast
 # We have the document currency forecast of billings and now have to translate this into USD
@@ -381,7 +368,6 @@ new_columns = [
     "fwd_12M",
 ]
 
-
 list_columns = [
     "recognized_",
     "service_",
@@ -393,8 +379,6 @@ list_columns = [
     "deferred_2Y_",
     "deferred_3Y_",
 ]
-
-
 
 df_fcst = convert_fcst(df_fcst, df_FX_rates, list_columns, new_columns)
 
@@ -415,7 +399,6 @@ df_book_period.head(10)
 # #### Need to take each BU/curr combination in the df_book_period rows and pull P07, P08, P09 ... P12 and P07_US, P08_US ... P12_US and move them to the df_fcst dataframe under the correct BU / curr / period section
 
 df_fcst = merge_bookings_to_fcst(df_book_period, df_fcst)
-
 
 df_fcst.head(10)
 
@@ -440,7 +423,6 @@ test_EUR = df_fcst[df_fcst["curr"] == "EUR"]
 
 
 def load_and_clean_waterfall(waterfall_filename, waterfall_sheetname):
-
     df = pd.read_excel(
         "../data/Data_2020_P06/Q2'20 Rev Acctg Mgmt Workbook (06-04-20).xlsx",
         sheet_name="Deferred Revenue Forecast",
@@ -459,7 +441,7 @@ def load_and_clean_waterfall(waterfall_filename, waterfall_sheetname):
 
     end_loc = df[
         df["External Reporting BU"] == "Grand Total inclusive of Magento/Marketo"
-    ]
+        ]
     end_index = end_loc.index[0]
 
     df = df[df.index <= end_index]
@@ -513,19 +495,11 @@ def load_and_clean_waterfall(waterfall_filename, waterfall_sheetname):
     changed_columns = changed_columns.str.replace("+", "")
     df_test.columns = changed_columns
 
-
-
-
-
     df_test_gb = df_test.groupby("External Reporting BU").sum()
-
-
 
     # ### Now that we have the data that is all numeric, we need to adjust for the reporting in thousands (FP&A report)
 
     df_test_gb = df_test_gb * 1000
-
-
 
     # ### Creating the columns that have this amortization by period
     #
@@ -545,18 +519,14 @@ def load_and_clean_waterfall(waterfall_filename, waterfall_sheetname):
 
     qtrly_list = [col for col in df_test_gb.columns if "Q" in col]
 
-
     period_index = 0
     for index, qtr in enumerate(qtrly_list):
-
         df_test_gb[new_columns[period_index]] = df_test_gb[qtr] / 3
         period_index += 1
         df_test_gb[new_columns[period_index]] = df_test_gb[qtr] / 3
         period_index += 1
         df_test_gb[new_columns[period_index]] = df_test_gb[qtr] / 3
         period_index += 1
-
-
 
     # ## I Don't need the everything in this. I can now remove some of the details
     #
@@ -571,8 +541,6 @@ def load_and_clean_waterfall(waterfall_filename, waterfall_sheetname):
     df_period_only["total"] = df_period_only.sum(axis=1)
 
     # ##### OK My periods work fine. Now I can move on to saving this and finishing the defered waterfall
-
-
 
     df_waterfall = df_test_gb.loc[:, df_test_gb.columns.str.contains("P")]
 
@@ -589,7 +557,6 @@ def load_and_clean_waterfall(waterfall_filename, waterfall_sheetname):
 
 # ## Building the Deferred Revenue Waterfall from the forecast dataframe (df_fcst) and the waterfall dataframe (df_waterfall)
 
-print(df_waterfall.head(10))
 
 # # NOTE: I am ignoring Deferred Type B (Service) billings - for now
 
@@ -619,15 +586,12 @@ df_wf["BU"] = df_wf["BU"].str.replace("DX Other", "Digital Experience")
 df_wf["BU"] = df_wf["BU"].str.replace("Experience Cloud", "Digital Experience")
 df_wf["BU"] = df_wf["BU"].str.replace("Print & Publishing", "Publishing")
 
-
 df_wf.head(40)
-
 
 # Testing one slice of the dataframe
 this_curr = "EUR"
 this_BU = "Digital Experience"
 this_slice = df_wf[(df_wf["BU"] == this_BU) & (df_wf["curr"] == this_curr)]
-
 
 # ### So I have the deferred waterfall by DC, period, BU.
 # # I need to groupby BU and Period
@@ -649,7 +613,6 @@ new_slice = df_wf_gb[df_wf_gb["BU"] == "Digital Experience"]
 # Altering the initial waterfall fields
 
 df_waterfall.drop("Grand inclusive of Magento/Marketo", inplace=True)
-
 
 # ## Take the As Performed / Upon Acceptance column and place this into the df_wf_gb dataframe.
 # ## We will assume that this does not change over time
@@ -674,12 +637,9 @@ for i in range(12 * 3):
 rename_dict = dict(zip(old_cols, new_columns))
 df_wf_gb = df_wf_gb.rename(columns=rename_dict)
 
-
 list_periods = df_wf_gb.period.unique()
 
-
 list_BU = df_wf_gb.BU.unique()
-
 
 df_waterfall["period"] = "2020-07"
 
@@ -687,8 +647,6 @@ df_waterfall = df_waterfall.reset_index()
 
 # TODO: learn pycharm
 df_waterfall.rename(columns={"External Reporting BU": "BU"}, inplace=True)
-
-
 
 # ## ADDING ADDITONAL PERIODS HERE TO MERGE WITH df_wf
 
@@ -702,9 +660,6 @@ df_waterfall["P34"] = 0
 df_waterfall["P35"] = 0
 df_waterfall["P36"] = 0
 
-
-
-
 # Planning on making a new dataframe with BU and period and merging them. Will create NAs everywhere else, but we will fillna
 list_periods = list_periods[1:]
 
@@ -715,7 +670,6 @@ for item in list_BU:
     for per in list_periods:
         to_df_BU.append(item)
         to_df_period.append(per)
-
 
 len(to_df_BU)
 
@@ -741,14 +695,13 @@ df_waterfall = df_waterfall.sort_index()
 df_all = df_all.sort_index()
 df_wf_gb = df_wf_gb.sort_index()
 
-
-
 # #### Sending this data over to excel as a check
 with pd.ExcelWriter("output.xlsx") as writer:
     df_waterfall.to_excel(writer, sheet_name="initial_waterfall")
     df_wf_gb.to_excel(writer, sheet_name="billings_impact")
     df_all.to_excel(writer, sheet_name="combined")
     df_wf.to_excel(writer, sheet_name="early_wf")
+
 
 def create_for_curr_billings(df_all, file_name):
     '''
@@ -759,8 +712,6 @@ def create_for_curr_billings(df_all, file_name):
     '''
 
 
-
-
 # ## Add the as performed back into the waterfall forecast
 
 df_all["Total"] = df_all[df_all.columns[:-1]].sum(axis=1)
@@ -768,7 +719,6 @@ df_all["Total"] = df_all[df_all.columns[:-1]].sum(axis=1)
 df_waterfall["Total"] = df_waterfall[df_waterfall.columns[:]].sum(axis=1)
 
 df_wf_gb["Total"] = df_wf_gb[df_wf_gb.columns[1:]].sum(axis=1)
-
 
 # # Need to add these back to our model dictionary
 # ## At this point I dont recall what it was called and will need to change it
@@ -778,16 +728,13 @@ saved_dict["waterfall"] = df_all
 saved_dict["bill_waterfall"] = df_wf_gb
 saved_dict["initial_waterfall"] = df_waterfall
 
-
 pickle.dump(saved_dict, open("../data/processed/final_forecast_2.p", "wb"))
-
 
 # ### Testing parts of the bookings/waterfall
 list_Q3 = ["2020-07", "2020-08", "2020-09"]
 this_BU = "Creative"
 test_Q3 = df[(df["BU"] == this_BU) & (df["period"].isin(list_Q3))]
 test_Q3["book_1Y_US"].sum()
-
 
 list_Q4 = ["2020-10", "2020-11", "2020-12"]
 this_BU = "Creative"
@@ -798,7 +745,6 @@ test_Q4["book_1Y_US"].sum()
 saved_dict["waterfall"] = df_all
 saved_dict["bill_waterfall"] = df_wf_gb
 saved_dict["initial_waterfall"] = df_waterfall
-
 
 # ##### Merging the df_fcst with the df_bililngs for easier charting?
 
@@ -823,6 +769,3 @@ input_df_dict = {
     "waterfall": df_all,
 }
 pickle.dump(input_df_dict, open("../data/processed/final_forecast2.p", "wb"))
-
-
-

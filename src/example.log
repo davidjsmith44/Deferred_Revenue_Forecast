@@ -5401,3 +5401,4 @@ Name: Sales Type, dtype: int64
 17  AUD  Experience Cloud  2016-09  840903.73  642690.01
 18  AUD  Experience Cloud  2016-10  128244.40   97060.59
 19  AUD  Experience Cloud  2016-11  209291.96  156771.08
+[deferred_revenue_forecast_v3.py:51 -        <module>()] Processing the Base Billings Data
