@@ -1371,60 +1371,57 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     # #### Type A Billings
     #
     # These billings are on a billing plan. The product config tells us how long before they renew
+    # and the sub term determines how often they are billed. (This is new)
     #
-    #  - '3Y' = 36 months
-    #  - '2Y' = 24 months
-    #  - '1Y' = 12 months
-    #  - 'MTHLY' = 1 month
-    #
-    # NOTE: There are also other fields in the 'Product Configtype ID' field that do not map well to a rebill period.
-    # To fix this, we need to load up a different file and determine the length of the sales contract (type A no config)
-    #
+    #  1M: config = 'MTHLY' or sub_term = 1
+    #  1Y: config = '1Y' AND sub term = 0 or 12  OR any config with sub_term = 12
+    #  2Y: config = '2Y' AND sub term = 0 or 24
+    #  3Y: config = '3Y' AND sub term = 0 or 36
+    #  There are also config types that do not allow us to map these into a billings frequency.
+    # These types are {"BLANK", "OCONS", "ONORE", "OUNIV"}
+    # These types are loaded from the type_A_no_config report.
 
     dfr_a = dfr[dfr["rev_req_type"] == "A"].copy()
 
-    gb_a = dfr_a.groupby(["curr", "BU", "period", "config"], as_index=False).sum()
-
-
-    # gb_a.head(20)
-    # gb_a.tail(20)
-    # gb_a.sample(20)
+    #grouping by fields we need to keep.
+    gb_a = dfr_a.groupby(["curr", "BU", "period", "config", "sub_term"], as_index=False).sum()
 
     print('A config value counts')
-    print(gb_a["config"].value_counts())
+    print(gb_a["config"].value_counts(dropna=False))
 
-    # #### Below is just a check to see how large the billing types are across all periods
+    # splitting into config types we keep and ones we need to get in the type_A_no_config report
     config_type_keepers = ['MTHLY', '1Y', '2Y', '3Y']
     gb_a_keepers = gb_a[gb_a["config"].isin(config_type_keepers)].copy()
     a_blank_config = gb_a[~gb_a["config"].isin(config_type_keepers)].copy()
 
-    #gb_a_config = gb_a.groupby(["config"], as_index=False).sum()
+    print('len gb_a', len(gb_a))
+    print('gb_a_keepers', len(gb_a_keepers))
+    print('len a_blank_config', len(a_bad_config))
     print('Total USD Equivalent Billings of Type A with bad configs', a_blank_config.US_amount.sum())
 
-    # ###### These 'OCONS', 'OENSV', 'ONORE' and 'OUNIV' config types are not actual product config IDs so we have to get them from a different data file. We are excluding these types below.
-    config_list = ["1Y", "2Y", "3Y", "MTHLY"]
-    gb_a_config = gb_a[gb_a["config"].isin(config_list)]
-    a_blank_config = gb_a[~gb_a["config"].isin(config_type_keepers)].copy()
-
-    print('Total USD Equivalent Billings of Type A with bad configs',
-          a_blank_config.US_amount.sum())
-
     # ###### Grouping by the config type into gb_a_1Y, gb_a_2Y, gb_a_3y, gb_a_1M dataframes
-    #
+    # Selecting monthly billings
+    gb_a_1Y = gb_a_keepers[(gb_a_keepers['config'] == 'MTHLY') |
+                         (gb_a_keepers['sub_term'] == 1)].copy()
+    index_1M = gb_a_1Y.index
+    # dropping monthly billings from the keepers
+    gb_a_keepers.drop(index_1M, inplace=True)
 
-    #gb_a_1Y = gb_a_config[gb_a_config["config"] == "1Y"].copy()
-    #gb_a_2Y = gb_a_config[gb_a_config["config"] == "2Y"].copy()
-    #gb_a_3Y = gb_a_config[gb_a_config["config"] == "3Y"].copy()
-    #gb_a_1M = gb_a_config[gb_a_config["config"] == "MTHLY"].copy()
+    gb_a_1Y = gb_a_keepers[(gb_a_keepers['sub_term'] == 12) |
+                         ((gb_a_keepers['sub_term'] == 0) &
+                          (gb_a_keepers['config'] == '1Y'))].copy()
+    index_1Y = gb_a_1Y.index
+    gb_a_keepers.drop(index_1Y, inplace=True)
 
-    #print("this is the lenght of type A 1M billings: ", len(gb_a_1M))
-    #print("this is the lenght of type A 1Y billings: ", len(gb_a_1Y))
-    #print("this is the lenght of type A 2Y billings: ", len(gb_a_2Y))
-    #print("this is the lenght of type A 3Y billings: ", len(gb_a_3Y))
+    # remaining types will be 2Y with sub_term = 0 or 24 or 3Y with 0 or 36
+    gb_a_2Y = gb_a_keepers[gb_a_keepers['config'] == '2Y'].copy()
+    gb_a_3Y = gb_a_keepers[gb_a_keepers['config'] == '3Y'].copy()
 
-    # gb_a_2Y.head(5)
-    # gb_a_1M.tail(5)
-    # gb_a_3Y.sample(5)
+    print("this is the lenght of type A 1M billings: ", len(gb_a_1M))
+    print("this is the lenght of type A 1Y billings: ", len(gb_a_1Y))
+    print("this is the lenght of type A 2Y billings: ", len(gb_a_2Y))
+    print("this is the lenght of type A 3Y billings: ", len(gb_a_3Y))
+
 
     # #### TYPE D billings
     # These billings have a field 'Rule For Bill Date' that determines when new billings will occur
@@ -1440,36 +1437,51 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
 
     dfr_d = dfr[dfr["rev_req_type"] == "D"].copy()
 
-    gb_d = dfr_d.groupby(["curr", "BU", "period", "rebill_rule"], as_index=False).sum()
-    gb_d.drop(labels="Subscription Term", axis=1, inplace=True)
+    gb_d = dfr_d.groupby(["curr", "BU", "period", "rebill_rule", "sales_doc"], as_index=False).sum()
+    gb_d.drop(labels=["sub_term", "duration"], axis=1, inplace=True)
 
-    gb_d["rebill_rule"].value_counts()
+    gb_d["rebill_rule"].value_counts(dropna=False)
 
     # ###### Grouping these by rebill rule and incorporating rebill rules that have the same rebill period
+    list_monthly = ['Y1', 'Y2', 'Y3', 'YM']
+    list_qtrly = ['YQ', 'YY', 'YT']
+    list_semi_ann = ['YH']
+    list_ann = ['YA', 'YC', 'YX']
+    list_2yrs = ['Y4']
+    list_3yrs = ['Y7']
+    list_all_rebills = list_monthly + list_qtrly + list_semi_ann + list_ann + list_2yrs + list_3yrs
 
-    gb_d_mthly = gb_d[gb_d["rebill_rule"].isin(["Y1", "Y2", "Y3", "YM"])].copy()
+    # TODO: We need to create a test that all of the rebill_rule fields are in list_all_rebills
+
+    gb_d_mthly = gb_d[gb_d["rebill_rule"].isin(list_monthly)].copy()
     gb_d_mthly.drop(labels="rebill_rule", axis=1, inplace=True)
     gb_d_mthly = gb_d_mthly.groupby(["curr", "BU", "period"]).sum()
     gb_d_mthly.reset_index(inplace=True)
 
-    gb_d_qtrly = gb_d[gb_d["rebill_rule"].isin(["YQ", "YY", "YT"])].copy()
+    gb_d_qtrly = gb_d[gb_d["rebill_rule"].isin(list_qtrly)].copy()
     gb_d_qtrly.drop(labels="rebill_rule", axis=1, inplace=True)
     gb_d_qtrly = gb_d_qtrly.groupby(["curr", "BU", "period"]).sum()
     gb_d_qtrly.reset_index(inplace=True)
 
-    gb_d_semi_ann = gb_d[gb_d["rebill_rule"] == "YH"]
+    gb_d_semi_ann = gb_d[gb_d["rebill_rule"].isin(list_semi_ann)]
+    gb_d_semi_ann.drop(labels="rebill_rule", axis=1, inplace=True)
+    gb_d_semi_ann = gb_d_semi_ann.groupby(["curr", "BU", "period"]).sum()
+    gb_d_semi_ann.reset_index(inplace=True)
 
-    gb_d_annual = gb_d[gb_d["rebill_rule"].isin(["YA", "YC", "YX"])].copy()
+    gb_d_annual = gb_d[gb_d["rebill_rule"].isin(list_ann)].copy()
     gb_d_annual.drop(labels="rebill_rule", axis=1, inplace=True)
     gb_d_annual = gb_d_annual.groupby(["curr", "BU", "period"]).sum()
     gb_d_annual.reset_index(inplace=True)
 
-    gb_d_two_yrs = gb_d[gb_d["rebill_rule"] == "Y4"]
-    gb_d_three_yrs = gb_d[gb_d["rebill_rule"] == "Y7"]
+    gb_d_two_yrs = gb_d[gb_d["rebill_rule"].isin(list_2yrs)].copy()
+    gb_d_two_yrs.drop(labels="rebill_rule", axis=1, inplace=True)
+    gb_d_two_yrs = gb_d_two_yrs.groupby(["curr", "BU", "period"]).sum()
+    gb_d_two_yrs.reset_index(inplace=True)
 
-    # gb_d_qtrly.head(10)
-    # gb_d_annual.tail(10)
-    # gb_d_three_yrs.head(10)
+    gb_d_three_yrs = gb_d[gb_d["rebill_rule"].isin(list_3yrs)]
+    gb_d_three_yrs.drop(labels="rebill_rule", axis=1, inplace=True)
+    gb_d_three_yrs = gb_d_three_yrs.groupby(["curr", "BU", "period"]).sum()
+    gb_d_three_yrs.reset_index(inplace=True)
 
     print("Length of monthly", len(gb_d_mthly))
     print("Length of quarterly", len(gb_d_qtrly))
