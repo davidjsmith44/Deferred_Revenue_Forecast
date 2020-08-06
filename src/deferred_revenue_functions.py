@@ -10,7 +10,7 @@ from sklearn.linear_model import LinearRegression
 
 plt.style.use("ggplot")
 
-logger = logging.getLogger("deferred_logger")
+
 
 
 
@@ -1384,35 +1384,43 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     dfr_a = dfr[dfr["rev_req_type"] == "A"].copy()
 
     gb_a = dfr_a.groupby(["curr", "BU", "period", "config"], as_index=False).sum()
-    gb_a.drop(labels="Subscription Term", axis=1, inplace=True)
+
 
     # gb_a.head(20)
     # gb_a.tail(20)
     # gb_a.sample(20)
 
-    gb_a["config"].value_counts()
+    print('A config value counts')
+    print(gb_a["config"].value_counts())
 
     # #### Below is just a check to see how large the billing types are across all periods
+    config_type_keepers = ['MTHLY', '1Y', '2Y', '3Y']
+    gb_a_keepers = gb_a[gb_a["config"].isin(config_type_keepers)].copy()
+    a_blank_config = gb_a[~gb_a["config"].isin(config_type_keepers)].copy()
 
-    gb_a_config = gb_a.groupby(["config"], as_index=False).sum()
-    gb_a_config
+    #gb_a_config = gb_a.groupby(["config"], as_index=False).sum()
+    print('Total USD Equivalent Billings of Type A with bad configs', a_blank_config.US_amount.sum())
 
     # ###### These 'OCONS', 'OENSV', 'ONORE' and 'OUNIV' config types are not actual product config IDs so we have to get them from a different data file. We are excluding these types below.
     config_list = ["1Y", "2Y", "3Y", "MTHLY"]
     gb_a_config = gb_a[gb_a["config"].isin(config_list)]
+    a_blank_config = gb_a[~gb_a["config"].isin(config_type_keepers)].copy()
+
+    print('Total USD Equivalent Billings of Type A with bad configs',
+          a_blank_config.US_amount.sum())
 
     # ###### Grouping by the config type into gb_a_1Y, gb_a_2Y, gb_a_3y, gb_a_1M dataframes
     #
 
-    gb_a_1Y = gb_a_config[gb_a_config["config"] == "1Y"].copy()
-    gb_a_2Y = gb_a_config[gb_a_config["config"] == "2Y"].copy()
-    gb_a_3Y = gb_a_config[gb_a_config["config"] == "3Y"].copy()
-    gb_a_1M = gb_a_config[gb_a_config["config"] == "MTHLY"].copy()
+    #gb_a_1Y = gb_a_config[gb_a_config["config"] == "1Y"].copy()
+    #gb_a_2Y = gb_a_config[gb_a_config["config"] == "2Y"].copy()
+    #gb_a_3Y = gb_a_config[gb_a_config["config"] == "3Y"].copy()
+    #gb_a_1M = gb_a_config[gb_a_config["config"] == "MTHLY"].copy()
 
-    print("this is the lenght of type A 1M billings: ", len(gb_a_1M))
-    print("this is the lenght of type A 1Y billings: ", len(gb_a_1Y))
-    print("this is the lenght of type A 2Y billings: ", len(gb_a_2Y))
-    print("this is the lenght of type A 3Y billings: ", len(gb_a_3Y))
+    #print("this is the lenght of type A 1M billings: ", len(gb_a_1M))
+    #print("this is the lenght of type A 1Y billings: ", len(gb_a_1Y))
+    #print("this is the lenght of type A 2Y billings: ", len(gb_a_2Y))
+    #print("this is the lenght of type A 3Y billings: ", len(gb_a_3Y))
 
     # gb_a_2Y.head(5)
     # gb_a_1M.tail(5)
