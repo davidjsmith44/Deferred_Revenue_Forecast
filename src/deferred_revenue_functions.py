@@ -1354,9 +1354,13 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     gb_rec.drop(labels=["duration", "sub_term"] , axis=1, inplace=True)
 
     # Service Billings
-    # Below we are grouping the svc dataframe by Currency, Business Unit and Period and cleaning up the data we do not need. Since the service billings go directly to revenue, there is no contract that will renew and need to be modeled in the future.
+    # Below we are grouping the svc dataframe by Currency, Business Unit and Period and
+    # cleaning up the data we do not need. Since the service billings go directly to revenue,
+    # there is no contract that will renew and need to be modeled in the future.
+    # TODO: Take care of the service billings (how should they amortize?)
+    # possibly only a problem when we get to deferred revenue (forecasting)
     gb_svc = svc.groupby(["curr", "BU", "period"], as_index=False).sum()
-    gb_svc.drop(labels="sub_term", axis=1, inplace=True)
+    gb_svc.drop(labels=["sub_term", "duration"], axis=1, inplace=True)
 
     # Deffered Billings
     # Type B Billings
@@ -1513,7 +1517,6 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     list_df = [
         gb_rec,
         gb_svc,
-        gb_b,
         gb_a_1M,
         gb_a_1Y,
         gb_a_2Y,
@@ -1529,7 +1532,6 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     list_columns = [
         "recognized",
         "service",
-        "deferred_B",
         "deferred_1M_a",
         "deferred_1Y_a",
         "deferred_2Y_a",
