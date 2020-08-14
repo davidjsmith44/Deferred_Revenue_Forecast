@@ -31,17 +31,14 @@
 """ Import Functions """
 import matplotlib.pyplot as plt
 import pandas as pd
-
-plt.style.use("ggplot")
 import pickle
 from math import ceil
 from sklearn.linear_model import LinearRegression
 from scipy.interpolate import interp1d, griddata
-
-
 import json
 from deferred_revenue_functions import *
 
+plt.style.use("ggplot")
 # Step 1: Processing Base Billings Data
 
 """ Data File Names and sheet names are contained in the config.json file """
@@ -68,6 +65,7 @@ df_curr_map = load_curr_map(config_dict)
 df, model_dict = load_base_billings(config_dict)
 
 print(df.head(10))
+print(df.columns)
 
 df_billings = add_type_A_billings(filename_billings,
                                   config_dict['billings']['type_A_sheetname'],
@@ -608,7 +606,7 @@ df_as_performed = df_waterfall["As Performed / Upon Acceptance"].copy()
 
 df_waterfall = df_waterfall.drop("As Performed / Upon Acceptance", axis=1)
 
-# Changing the periods in the df_wf_gb to match the df_watefall first
+# Changing the periods in the df_wf_gb to match the df_waterfall first
 
 old_cols = df_wf_gb.columns
 old_cols = old_cols[3:]

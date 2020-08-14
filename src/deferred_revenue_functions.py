@@ -1289,9 +1289,8 @@ def load_base_billings(config_dict):
     """
     filename_billings = config_dict['path_to_data'] + config_dict['billings']['filename']
     sheetname_billings = config_dict['billings']['base_sheetname']
-    df = pd.read_excel(
-        filename_billings, sheet_name=sheetname_billings
-    )
+    df = pd.read_excel(filename_billings, sheet_name=sheetname_billings)
+
     ###### Changing the column names early since they are inconsistent across other reports
     df.rename(
         index=str,
@@ -1344,10 +1343,14 @@ def load_base_billings(config_dict):
     #
     #  #### Below we are creating a seperate dataframe for each of the Sales Types
     #
-    list_IR = ['IR', 'IR-NA', 'LFB']
-    list_service = ['CR', 'CR-NA']
-    list_deferred = ['RR', 'RR-NA']
-    list_hybrid = ['BNDL']
+    #list_IR = ['IR', 'IR-NA', 'LFB']
+    #list_service = ['CR', 'CR-NA']
+    #list_deferred = ['RR', 'RR-NA']
+    #list_hybrid = ['BNDL']
+    list_IR = config_dict['POB_type_classifier']['list_IR']
+    list_service = config_dict['POB_type_classifier']['list_service']
+    list_deferred = config_dict['POB_type_classifier']['list_deferred']
+    list_hybrid = config_dict['POB_type_classifier']['list_hybrid']
     list_all = list_IR + list_service + list_deferred + list_hybrid
 
     rec = df[df["POB_type"].isin(list_IR)].copy()
@@ -1439,6 +1442,11 @@ def load_base_billings(config_dict):
     print("this is the length of type A 2Y billings: ", len(gb_a_2Y))
     print("this is the length of type A 3Y billings: ", len(gb_a_3Y))
 
+    # Cleaning up the sub_term columns from the gb_A_#X variabels
+    gb_a_1M.drop(labels = ['sub_term'], axis=1, inplace=True)
+    gb_a_1Y.drop(labels=['sub_term'], axis=1, inplace=True)
+    gb_a_2Y.drop(labels=['sub_term'], axis=1, inplace=True)
+    gb_a_3Y.drop(labels=['sub_term'], axis=1, inplace=True)
     # dropping duration from the gb_a_#X below here
 
 
