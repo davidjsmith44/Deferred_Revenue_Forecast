@@ -37,22 +37,12 @@ import pickle
 from math import ceil
 from sklearn.linear_model import LinearRegression
 from scipy.interpolate import interp1d, griddata
-#import logging
+
+
 import json
 from deferred_revenue_functions import *
 
-""" Creating Logger File for Error Checking """
-# logger = logging.getLogger("deferred_logger")
-# logger.setLevel("DEBUG")
-# logging.basicConfig(
-#    filename="example.log",
-#    level=logging.DEBUG,
-#    format="[%(filename)s:%(lineno)s - %(funcName)15s()] %(message)s",
-# )
-
-
-# ## Step 1: Processing Base Billings Data
-# logger.debug('Processing the Base Billings Data')
+# Step 1: Processing Base Billings Data
 
 """ Data File Names and sheet names are contained in the config.json file """
 
@@ -60,27 +50,24 @@ with open('../data/Data_2020_P06/config.json') as json_file:
     config_dict = json.load(json_file)
 
 
-print(config_dict)
 """ Loading up the input files """
 # Adobe Financial Calendar to get period start and end dates
-df_cal = load_ADBE_cal(config_dict['ADBE_cal']['direct_filename'],
-                       config_dict['ADBE_cal']['sheetname'])
+df_cal = load_ADBE_cal(config_dict)
 
 # FX Rates
-filename_FX = config_dict['path_to_data'] + config_dict['FX_rates']['filename']
-df_FX_rates = load_FX_data(filename_FX, config_dict['FX_rates']['sheetname'])
+df_FX_rates = load_FX_data(config_dict)
 
 # FX forwards
-filename_FX_fwds = config_dict['path_to_data'] + config_dict['FX_forwards']['filename']
-df_FX_fwds = load_FX_fwds(filename_FX_fwds, config_dict['FX_forwards']['sheetname'])
+df_FX_fwds = load_FX_fwds(config_dict)
 
 #  Currency Map
-filename_curr_map = config_dict['path_to_data'] + config_dict['curr_map']['filename']
-df_curr_map = load_curr_map(filename_curr_map, config_dict['curr_map']['sheetname'])
+df_curr_map = load_curr_map(config_dict)
 
 # Base Billings File (not type A)
-filename_billings = config_dict['path_to_data'] + config_dict['billings']['filename']
-df, model_dict = load_base_billings(filename_billings, config_dict['billings']['base_sheetname'])
+#filename_billings = config_dict['path_to_data'] + config_dict['billings']['filename']
+df, model_dict = load_base_billings(config_dict)
+
+print(df.head(10))
 
 df_billings = add_type_A_billings(filename_billings,
                                   config_dict['billings']['type_A_sheetname'],

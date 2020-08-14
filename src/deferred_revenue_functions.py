@@ -14,8 +14,9 @@ plt.style.use("ggplot")
 
 
 
-def load_FX_data(FX_rates_filename, FX_rates_sheetname="to_matlab"):
-    df_FX_rates = pd.read_excel(FX_rates_filename, sheet_name=FX_rates_sheetname)
+def load_FX_data(config_dict):
+    filename_FX = config_dict['path_to_data'] + config_dict['FX_rates']['filename']
+    df_FX_rates = pd.read_excel(filename_FX, sheet_name=config_dict['FX_rates']['sheetname'])
     df_FX_rates["VOL_3M"] = df_FX_rates["VOL_3M"] / 100
     df_FX_rates["VOL_6M"] = df_FX_rates["VOL_6M"] / 100
     df_FX_rates["VOL_9M"] = df_FX_rates["VOL_9M"] / 100
@@ -25,8 +26,10 @@ def load_FX_data(FX_rates_filename, FX_rates_sheetname="to_matlab"):
     return df_FX_rates
 
 
-def load_curr_map(curr_map_filename, curr_map_sheetname="curr_map"):
-    df_curr_map = pd.read_excel(curr_map_filename, sheet_name=curr_map_sheetname)
+def load_curr_map(config_dict):
+    filename_curr_map = config_dict['path_to_data'] + config_dict['curr_map']['filename']
+    curr_map_sheetname = config_dict['curr_map']['sheetname']
+    df_curr_map = pd.read_excel(filename_curr_map, sheet_name=curr_map_sheetname)
     df_curr_map["Country"] = df_curr_map["Country"].str.replace(
         "\(MA\)", "", case=False
     )
@@ -88,8 +91,11 @@ def add_billings_periods(df_billings):
     return df_billings
 
 
-def load_ADBE_cal(ADBE_cal_filename, ADBE_cal_sheetname="ADBE_cal"):
+def load_ADBE_cal(config_dict):
     # loading Adobe financial calendar and calculating period weeks
+    ADBE_cal_filename  = config_dict['ADBE_cal']['direct_filename']
+    ADBE_cal_sheetname = config_dict['ADBE_cal']['sheetname']
+
     df_cal = pd.read_excel(ADBE_cal_filename, ADBE_cal_sheetname)
     df_cal["Period_Weeks"] = (df_cal["Per_End"] - df_cal["Per_Start"]) / np.timedelta64(
         1, "W"
@@ -405,9 +411,11 @@ def remove_bad_currencies(df, model_dict):
     return df
 
 
-def load_FX_fwds(FX_fwds_filename, FX_fwds_sheetname="forward_data"):
+def load_FX_fwds(config_dict):
+    filename_FX_fwds = config_dict['path_to_data'] + config_dict['FX_forwards']['filename']
+    FX_fwds_sheetname  = config_dict['FX_forwards']['sheetname']
     df_FX_fwds = pd.read_excel(
-        FX_fwds_filename, sheet_name=FX_fwds_sheetname, skiprows=1, usecols="C,G",
+        filename_FX_fwds, sheet_name=FX_fwds_sheetname, skiprows=1, usecols="C,G",
     )
 
     df_FX_fwds.rename(
@@ -1275,12 +1283,14 @@ def merge_billings_with_A(temp_flat_DC, temp_flat_US, df):
     return df_billings
 
 
-def load_base_billings(billings_filename, billings_sheetname="base_billings"):
+def load_base_billings(config_dict):
     """ This loads up the base billings data and creates a dataframe
 
     """
+    filename_billings = config_dict['path_to_data'] + config_dict['billings']['filename']
+    sheetname_billings = config_dict['billings']['base_sheetname']
     df = pd.read_excel(
-        "../data/Data_2020_P06/all_billings_inputs.xlsx", sheet_name=billings_sheetname
+        filename_billings, sheet_name=sheetname_billings
     )
     ###### Changing the column names early since they are inconsistent across other reports
     df.rename(
@@ -1371,6 +1381,9 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     #gb_b = dfr_b.groupby(["curr", "BU", "period"], as_index=False).sum()
     #gb_b.drop(labels="Subscription Term", axis=1, inplace=True)
 
+    # duration is only necessary for modeling new service type billings.
+    # since this is not needed in the deferred billings, we are dropping it here
+    dfr.drop(labels=['duration'], axis=1, inplace=True)
 
     # #### Type A Billings
     #
@@ -1400,14 +1413,14 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
 
     print('len gb_a', len(gb_a))
     print('gb_a_keepers', len(gb_a_keepers))
-    print('len a_blank_config', len(a_bad_config))
+    print('len a_blank_config', len(a_blank_config))
     print('Total USD Equivalent Billings of Type A with bad configs', a_blank_config.US_amount.sum())
 
     # ###### Grouping by the config type into gb_a_1Y, gb_a_2Y, gb_a_3y, gb_a_1M dataframes
     # Selecting monthly billings
-    gb_a_1Y = gb_a_keepers[(gb_a_keepers['config'] == 'MTHLY') |
+    gb_a_1M = gb_a_keepers[(gb_a_keepers['config'] == 'MTHLY') |
                          (gb_a_keepers['sub_term'] == 1)].copy()
-    index_1M = gb_a_1Y.index
+    index_1M = gb_a_1M.index
     # dropping monthly billings from the keepers
     gb_a_keepers.drop(index_1M, inplace=True)
 
@@ -1421,10 +1434,13 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     gb_a_2Y = gb_a_keepers[gb_a_keepers['config'] == '2Y'].copy()
     gb_a_3Y = gb_a_keepers[gb_a_keepers['config'] == '3Y'].copy()
 
-    print("this is the lenght of type A 1M billings: ", len(gb_a_1M))
-    print("this is the lenght of type A 1Y billings: ", len(gb_a_1Y))
-    print("this is the lenght of type A 2Y billings: ", len(gb_a_2Y))
-    print("this is the lenght of type A 3Y billings: ", len(gb_a_3Y))
+    print("this is the length of type A 1M billings: ", len(gb_a_1M))
+    print("this is the length of type A 1Y billings: ", len(gb_a_1Y))
+    print("this is the length of type A 2Y billings: ", len(gb_a_2Y))
+    print("this is the length of type A 3Y billings: ", len(gb_a_3Y))
+
+    # dropping duration from the gb_a_#X below here
+
 
 
     # #### TYPE D billings
@@ -1442,7 +1458,7 @@ def load_base_billings(billings_filename, billings_sheetname="base_billings"):
     dfr_d = dfr[dfr["rev_req_type"] == "D"].copy()
 
     gb_d = dfr_d.groupby(["curr", "BU", "period", "rebill_rule", "sales_doc"], as_index=False).sum()
-    gb_d.drop(labels=["sub_term", "duration"], axis=1, inplace=True)
+    gb_d.drop(labels=["sub_term"], axis=1, inplace=True)
 
     gb_d["rebill_rule"].value_counts(dropna=False)
 
