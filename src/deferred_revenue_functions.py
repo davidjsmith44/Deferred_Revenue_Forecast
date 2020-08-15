@@ -1336,17 +1336,10 @@ def load_base_billings(config_dict):
     # df = df[df["Sales Type"] != "NON-REV"]
 
     # ## Grouping the billings by POB Type
-    # Grouping the data by the <b> Sales Type </b> field
-    #  - <i>'RECOGNIZED'</i> sales are perpetual and go straight to revenue without hitting deferred
-    #  - <i>'PRO-SVC-INV'</i> professional services that are invoiced and go to revenue directly when invoiced
-    #  - <i>'DEFERRED'</i> sales that will sit on the balance sheet in deferred revenue and amortize over their life
-    #
-    #  #### Below we are creating a seperate dataframe for each of the Sales Types
-    #
-    #list_IR = ['IR', 'IR-NA', 'LFB']
-    #list_service = ['CR', 'CR-NA']
-    #list_deferred = ['RR', 'RR-NA']
-    #list_hybrid = ['BNDL']
+    # list_IR = ['IR', 'IR-NA', 'LFB']
+    # list_service = ['CR', 'CR-NA']
+    # list_deferred = ['RR', 'RR-NA']
+    # list_hybrid = ['BNDL']
     list_IR = config_dict['POB_type_classifier']['list_IR']
     list_service = config_dict['POB_type_classifier']['list_service']
     list_deferred = config_dict['POB_type_classifier']['list_deferred']
@@ -1356,8 +1349,13 @@ def load_base_billings(config_dict):
     rec = df[df["POB_type"].isin(list_IR)].copy()
     svc = df[df["POB_type"].isin(list_service)].copy()
     dfr = df[df["POB_type"].isin(list_deferred)].copy()
-    hyb = df[df["POB_type"].isin(list_hybrid)].copy()
-    blank = df[~df["POB_type"].isin(list_all)].copy()
+    df_hyb = df[df["POB_type"].isin(list_hybrid)].copy()
+    df_no_POB = df[~df["POB_type"].isin(list_all)].copy()
+
+    df_hyb_IR, df_hyb_drf = split_hybrid_dataframe(df_hyb, config_dict)
+    # concatenate df_hyb_IR with rec and df_hyb_drf with df_hyb_drf
+    rec = pd.concat(rec, df_hyb_IR)
+    dfr = pd.concat(dfr, df_hyb_dfr)
 
     # Recognized Revenue
     # Below we are grouping the rec dataframe by Currency, Business Unit and Period and cleaning up the data we do not need. Since the recognized revenue go directly to revenue, there is no contract that will renew and need to be modeled in the future.
@@ -1412,12 +1410,12 @@ def load_base_billings(config_dict):
     # splitting into config types we keep and ones we need to get in the type_A_no_config report
     config_type_keepers = ['MTHLY', '1Y', '2Y', '3Y']
     gb_a_keepers = gb_a[gb_a["config"].isin(config_type_keepers)].copy()
-    a_blank_config = gb_a[~gb_a["config"].isin(config_type_keepers)].copy()
+    df_a_no_config = gb_a[~gb_a["config"].isin(config_type_keepers)].copy()
 
     print('len gb_a', len(gb_a))
     print('gb_a_keepers', len(gb_a_keepers))
-    print('len a_blank_config', len(a_blank_config))
-    print('Total USD Equivalent Billings of Type A with bad configs', a_blank_config.US_amount.sum())
+    print('len df_a_no_config', len(df_a_no_config))
+    print('Total USD Equivalent Billings of Type A with bad configs', df_a_no_config.US_amount.sum())
 
     # ###### Grouping by the config type into gb_a_1Y, gb_a_2Y, gb_a_3y, gb_a_1M dataframes
     # Selecting monthly billings
@@ -1572,7 +1570,7 @@ def load_base_billings(config_dict):
 
     df = clean_df_columns(df)
 
-    return df, model_dict
+    return df, model_dict, df_no_POB, df_a_no_config
 
 
 def interp_FX_fwds(df_FX_rates):
@@ -1936,3 +1934,17 @@ def convert_bookings_to_DC(df_book_period, df_FX_fwds):
     df_book_period.columns
 
     return df_book_period
+
+def split_hybrid_dataframe(df_hyb, config_dict):
+    pct_IR = config_dict['hybrid_pct_IR']
+    df_IR = df_hyb.copy()
+    df_deferred = df_hyb.copy()
+
+    df_IR['DC_amount'] = df_IR['DC_amount'] * pct_IR
+    df_IR['US_amount'] = df_IR['US_amount'] * pct_IR
+
+    df_deferred['DC_amount'] = df_deferred['DC_amount'] * (1 - pct_IR)
+    df_deferred['US_amount'] = df_deferred['US_amount'] * (1 - pct_IR)
+
+    return df_IR, df_deferred
+

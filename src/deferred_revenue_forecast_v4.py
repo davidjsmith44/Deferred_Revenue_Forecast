@@ -62,7 +62,7 @@ df_curr_map = load_curr_map(config_dict)
 
 # Base Billings File (not type A)
 #filename_billings = config_dict['path_to_data'] + config_dict['billings']['filename']
-df, model_dict = load_base_billings(config_dict)
+df, model_dict, df_no_POB, df_a_no_config = load_base_billings(config_dict)
 
 print(df.head(10))
 print(df.columns)
