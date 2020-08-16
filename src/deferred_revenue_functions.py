@@ -1934,6 +1934,21 @@ def convert_bookings_to_DC(df_book_period, df_FX_fwds):
     return df_book_period
 
 def split_hybrid_dataframe(df_hyb, config_dict):
+    '''
+    The orders with a 'Sales Document Type' of "BNDL" are a combination of both the recognized revenue
+    and deferred revenue. The historical percentage of "BNDL" orders thar are deferred is about 87%.
+
+    This function takes the "BNDL" sales types (in a dataframe called df_hyb for hybrid) and returns
+    splits this dataframe into two separate dataframes, one that is immediate revenue and one that is
+    deferred.
+
+    :param df_hyb: This is the billings dataframe for the hybrid ("BNDL") sales document type orders
+    :param config_dict: This is the json config file. There is a field in this file called 'hybrid_pct_IR' which
+            contains the percentage of the BNDL billings that will go straight to revenue.
+    :return:
+        df_IR - the dataframe with just the immediate revenue portion of the billings
+        df_deferred - the dataframe that contains the deferred portion of the dataframe
+    '''
     pct_IR = config_dict['hybrid_pct_IR']
     df_IR = df_hyb.copy()
     df_deferred = df_hyb.copy()

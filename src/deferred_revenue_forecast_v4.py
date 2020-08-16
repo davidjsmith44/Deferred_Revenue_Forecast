@@ -61,7 +61,7 @@ df_curr_map = load_curr_map(config_dict)
 
 # Base Billings File (not type A)
 #filename_billings = config_dict['path_to_data'] + config_dict['billings']['filename']
-df, model_dict, df_no_POB, df_a_no_config = load_base_billings(config_dict)
+df, model_dict, df_no_POB, df_a_no_config, gb_d_no_rebill = load_base_billings(config_dict)
 
 # TODO: create function to clean df_no_POB
 # The data is already in the config_dict.
