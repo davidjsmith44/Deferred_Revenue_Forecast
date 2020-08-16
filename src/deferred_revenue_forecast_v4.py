@@ -46,7 +46,6 @@ plt.style.use("ggplot")
 with open('../data/Data_2020_P06/config.json') as json_file:
     config_dict = json.load(json_file)
 
-
 """ Loading up the input files """
 # Adobe Financial Calendar to get period start and end dates
 df_cal = load_ADBE_cal(config_dict)
@@ -64,6 +63,8 @@ df_curr_map = load_curr_map(config_dict)
 #filename_billings = config_dict['path_to_data'] + config_dict['billings']['filename']
 df, model_dict, df_no_POB, df_a_no_config = load_base_billings(config_dict)
 
+# TODO: create function to clean df_no_POB
+# The data is already in the config_dict.
 print(df.head(10))
 print(df.columns)
 

@@ -4,15 +4,9 @@ This file contains the functions used in the deferred revenue forecast
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
-
 from sklearn.linear_model import LinearRegression
 
 plt.style.use("ggplot")
-
-
-
-
 
 def load_FX_data(config_dict):
     filename_FX = config_dict['path_to_data'] + config_dict['FX_rates']['filename']
@@ -1352,10 +1346,11 @@ def load_base_billings(config_dict):
     df_hyb = df[df["POB_type"].isin(list_hybrid)].copy()
     df_no_POB = df[~df["POB_type"].isin(list_all)].copy()
 
-    df_hyb_IR, df_hyb_drf = split_hybrid_dataframe(df_hyb, config_dict)
+    df_hyb_IR, df_hyb_dfr = split_hybrid_dataframe(df_hyb, config_dict)
+
     # concatenate df_hyb_IR with rec and df_hyb_drf with df_hyb_drf
-    rec = pd.concat(rec, df_hyb_IR)
-    dfr = pd.concat(dfr, df_hyb_dfr)
+    rec = pd.concat([rec, df_hyb_IR])
+    dfr = pd.concat([dfr, df_hyb_dfr])
 
     # Recognized Revenue
     # Below we are grouping the rec dataframe by Currency, Business Unit and Period and cleaning up the data we do not need. Since the recognized revenue go directly to revenue, there is no contract that will renew and need to be modeled in the future.
@@ -1469,12 +1464,13 @@ def load_base_billings(config_dict):
     gb_d["rebill_rule"].value_counts(dropna=False)
 
     # ###### Grouping these by rebill rule and incorporating rebill rules that have the same rebill period
-    list_monthly = ['Y1', 'Y2', 'Y3', 'YM']
-    list_qtrly = ['YQ', 'YY', 'YT']
-    list_semi_ann = ['YH']
-    list_ann = ['YA', 'YC', 'YX']
-    list_2yrs = ['Y4']
-    list_3yrs = ['Y7']
+
+    list_monthly = config_dict['type_D_classification']["list_monthly"]
+    list_qtrly = config_dict['type_D_classification']["list_qtrly"]
+    list_semi_ann = config_dict['type_D_classification']["list_semi_ann"]
+    list_ann = config_dict['type_D_classification']["list_ann"]
+    list_2yrs = config_dict['type_D_classification']["list_2yrs"]
+    list_3yrs = config_dict['type_D_classification']["list_3yrs"]
     list_all_rebills = list_monthly + list_qtrly + list_semi_ann + list_ann + list_2yrs + list_3yrs
 
     # TODO: We need to create a test that all of the rebill_rule fields are in list_all_rebills
@@ -1508,6 +1504,10 @@ def load_base_billings(config_dict):
     gb_d_three_yrs.drop(labels="rebill_rule", axis=1, inplace=True)
     gb_d_three_yrs = gb_d_three_yrs.groupby(["curr", "BU", "period"]).sum()
     gb_d_three_yrs.reset_index(inplace=True)
+
+    # TODO: Create a check to see if there are any type D deferred billings with no rebill rule
+    gb_d_no_rebill = gb_d[~gb_d['rebill_rule'].isin(list_all_rebills)].copy()
+    print('There are {} line items that are type D and have no rebill rule'.format(len(gb_d_no_rebill)))
 
     print("Length of monthly", len(gb_d_mthly))
     print("Length of quarterly", len(gb_d_qtrly))
@@ -1886,7 +1886,7 @@ def build_booking_periods(df_bookings, df_billings):
         ["bill_Q1_sum", "bill_Q2_sum", "bill_Q3_sum", "bill_Q4_sum"], axis=1, inplace=True
     )
 
-    df_book_period.columns
+
 
     return df_book_period
 
@@ -1930,8 +1930,6 @@ def convert_bookings_to_DC(df_book_period, df_FX_fwds):
     df_book_period.tail(10)
 
     # ##### The df_book_period dataframe now has columns for bookings each period in both local currency and document currency
-
-    df_book_period.columns
 
     return df_book_period
 
