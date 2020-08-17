@@ -52,7 +52,7 @@ def load_base_billings(config_dict):
     # Recognized Revenue
     # Below we are grouping the rec dataframe by Currency, Business Unit and Period and cleaning up the data we do not need. Since the recognized revenue go directly to revenue, there is no contract that will renew and need to be modeled in the future.
 
-    # testing groupby object
+    # Grouping by currency, BU and period to save space
     gb_rec = rec.groupby(["curr", "BU", "period"], as_index=False).sum()
     gb_rec.drop(labels=["duration", "sub_term"] , axis=1, inplace=True)
 
@@ -65,32 +65,10 @@ def load_base_billings(config_dict):
     gb_svc = svc.groupby(["curr", "BU", "period"], as_index=False).sum()
     gb_svc.drop(labels=["sub_term", "duration"], axis=1, inplace=True)
 
-    # Deffered Billings
-    # Type B Billings
-    # THERE ARE NO LONGER ANY DEFERRED TYPE B BILLINGS!!!
-    # these are now all service based billings and the POB type determines if they sit in deferred
-    # such as CR or CR-NA billings or go immediately to revenue IR, IR-NA, LFB
-    #dfr_b = dfr[dfr["rev_req_type"] == "B"].copy()
-    #gb_b = dfr_b.groupby(["curr", "BU", "period"], as_index=False).sum()
-    #gb_b.drop(labels="Subscription Term", axis=1, inplace=True)
-
-    # duration is only necessary for modeling new service type billings.
-    # since this is not needed in the deferred billings, we are dropping it here
     dfr.drop(labels=['duration'], axis=1, inplace=True)
 
-    # #### Type A Billings
-    #
-    # These billings are on a billing plan. The product config tells us how long before they renew
-    # and the sub term determines how often they are billed. (This is new)
-    #
-    #  1M: config = 'MTHLY' or sub_term = 1
-    #  1Y: config = '1Y' AND sub term = 0 or 12  OR any config with sub_term = 12
-    #  2Y: config = '2Y' AND sub term = 0 or 24
-    #  3Y: config = '3Y' AND sub term = 0 or 36
-    #  There are also config types that do not allow us to map these into a billings frequency.
-    # These types are {"BLANK", "OCONS", "ONORE", "OUNIV"}
-    # These types are loaded from the type_A_no_config report.
-
+    # Deferred Type A Billings
+    # split the type A billings based on their rebill frequency
     dfr_a = dfr[dfr["rev_req_type"] == "A"].copy()
 
     A_df_dict = process_type_A(config_dict, dfr_A)
@@ -100,66 +78,7 @@ def load_base_billings(config_dict):
     gb_a_3Y = A_df_dict['gb_a_3Y']
     gb_a_no_config = A_df_dict['gb_a_no_config']
 
-    #grouping by fields we need to keep.
-    # gb_a = dfr_a.groupby(["curr", "BU", "period", "config", "sub_term"], as_index=False).sum()
-    #
-    # print('A config value counts')
-    # print(gb_a["config"].value_counts(dropna=False))
-    #
-    # # splitting into config types we keep and ones we need to get in the type_A_no_config report
-    # config_type_keepers = ['MTHLY', '1Y', '2Y', '3Y']
-    # gb_a_keepers = gb_a[gb_a["config"].isin(config_type_keepers)].copy()
-    # df_a_no_config = gb_a[~gb_a["config"].isin(config_type_keepers)].copy()
-    #
-    # print('len gb_a', len(gb_a))
-    # print('gb_a_keepers', len(gb_a_keepers))
-    # print('len df_a_no_config', len(df_a_no_config))
-    # print('Total USD Equivalent Billings of Type A with bad configs', df_a_no_config.US_amount.sum())
-    #
-    # # ###### Grouping by the config type into gb_a_1Y, gb_a_2Y, gb_a_3y, gb_a_1M dataframes
-    # # Selecting monthly billings
-    # gb_a_1M = gb_a_keepers[(gb_a_keepers['config'] == 'MTHLY') |
-    #                      (gb_a_keepers['sub_term'] == 1)].copy()
-    # index_1M = gb_a_1M.index
-    # # dropping monthly billings from the keepers
-    # gb_a_keepers.drop(index_1M, inplace=True)
-    #
-    # gb_a_1Y = gb_a_keepers[(gb_a_keepers['sub_term'] == 12) |
-    #                      ((gb_a_keepers['sub_term'] == 0) &
-    #                       (gb_a_keepers['config'] == '1Y'))].copy()
-    # index_1Y = gb_a_1Y.index
-    # gb_a_keepers.drop(index_1Y, inplace=True)
-    #
-    # # remaining types will be 2Y with sub_term = 0 or 24 or 3Y with 0 or 36
-    # gb_a_2Y = gb_a_keepers[gb_a_keepers['config'] == '2Y'].copy()
-    # gb_a_3Y = gb_a_keepers[gb_a_keepers['config'] == '3Y'].copy()
-    #
-    # print("this is the length of type A 1M billings: ", len(gb_a_1M))
-    # print("this is the length of type A 1Y billings: ", len(gb_a_1Y))
-    # print("this is the length of type A 2Y billings: ", len(gb_a_2Y))
-    # print("this is the length of type A 3Y billings: ", len(gb_a_3Y))
-    #
-    # # Cleaning up the sub_term columns from the gb_A_#X variabels
-    # gb_a_1M.drop(labels = ['sub_term'], axis=1, inplace=True)
-    # gb_a_1Y.drop(labels=['sub_term'], axis=1, inplace=True)
-    # gb_a_2Y.drop(labels=['sub_term'], axis=1, inplace=True)
-    # gb_a_3Y.drop(labels=['sub_term'], axis=1, inplace=True)
-    # # dropping duration from the gb_a_#X below here
-
-
-
-    # #### TYPE D billings
-    # These billings have a field 'Rule For Bill Date' that determines when new billings will occur
-    #  - Monthly:        *{Y1, Y2, Y3, Y5}*
-    #  - Quarterly:      *YQ*
-    #  - Every 4 months: *YT*  --NOTE: There are only 10 of these, so I am treating these as quarterly--
-    #  - Semi-annual:    *YH*
-    #  - Annual:         *{YA, YC}*
-    #  - Every 2 years:  *Y4*
-    #  - Every 3 years:  *Y7*
-    #
-    #  We also need to track the type D billings that do not have a 'Rule for Bill Date'
-
+    # Deferred Type D Billings
     dfr_d = dfr[dfr["rev_req_type"] == "D"].copy()
 
     return_dict = process_type_D(config_dict, df)
@@ -172,64 +91,6 @@ def load_base_billings(config_dict):
     gb_d_three_yrs = return_dict['three_years']
     gb_d_no_rebill = return_dict['no_rebill']
 
-    # gb_d = dfr_d.groupby(["curr", "BU", "period", "rebill_rule", "sales_doc"], as_index=False).sum()
-    # gb_d.drop(labels=["sub_term"], axis=1, inplace=True)
-    #
-    # gb_d["rebill_rule"].value_counts(dropna=False)
-    #
-    # # ###### Grouping these by rebill rule and incorporating rebill rules that have the same rebill period
-    #
-    # list_monthly = config_dict['type_D_classification']["list_monthly"]
-    # list_qtrly = config_dict['type_D_classification']["list_qtrly"]
-    # list_semi_ann = config_dict['type_D_classification']["list_semi_ann"]
-    # list_ann = config_dict['type_D_classification']["list_ann"]
-    # list_2yrs = config_dict['type_D_classification']["list_2yrs"]
-    # list_3yrs = config_dict['type_D_classification']["list_3yrs"]
-    # list_all_rebills = list_monthly + list_qtrly + list_semi_ann + list_ann + list_2yrs + list_3yrs
-    #
-    # # TODO: We need to create a test that all of the rebill_rule fields are in list_all_rebills
-    #
-    # gb_d_mthly = gb_d[gb_d["rebill_rule"].isin(list_monthly)].copy()
-    # gb_d_mthly.drop(labels="rebill_rule", axis=1, inplace=True)
-    # gb_d_mthly = gb_d_mthly.groupby(["curr", "BU", "period"]).sum()
-    # gb_d_mthly.reset_index(inplace=True)
-    #
-    # gb_d_qtrly = gb_d[gb_d["rebill_rule"].isin(list_qtrly)].copy()
-    # gb_d_qtrly.drop(labels="rebill_rule", axis=1, inplace=True)
-    # gb_d_qtrly = gb_d_qtrly.groupby(["curr", "BU", "period"]).sum()
-    # gb_d_qtrly.reset_index(inplace=True)
-    #
-    # gb_d_semi_ann = gb_d[gb_d["rebill_rule"].isin(list_semi_ann)]
-    # gb_d_semi_ann.drop(labels="rebill_rule", axis=1, inplace=True)
-    # gb_d_semi_ann = gb_d_semi_ann.groupby(["curr", "BU", "period"]).sum()
-    # gb_d_semi_ann.reset_index(inplace=True)
-    #
-    # gb_d_annual = gb_d[gb_d["rebill_rule"].isin(list_ann)].copy()
-    # gb_d_annual.drop(labels="rebill_rule", axis=1, inplace=True)
-    # gb_d_annual = gb_d_annual.groupby(["curr", "BU", "period"]).sum()
-    # gb_d_annual.reset_index(inplace=True)
-    #
-    # gb_d_two_yrs = gb_d[gb_d["rebill_rule"].isin(list_2yrs)].copy()
-    # gb_d_two_yrs.drop(labels="rebill_rule", axis=1, inplace=True)
-    # gb_d_two_yrs = gb_d_two_yrs.groupby(["curr", "BU", "period"]).sum()
-    # gb_d_two_yrs.reset_index(inplace=True)
-    #
-    # gb_d_three_yrs = gb_d[gb_d["rebill_rule"].isin(list_3yrs)]
-    # gb_d_three_yrs.drop(labels="rebill_rule", axis=1, inplace=True)
-    # gb_d_three_yrs = gb_d_three_yrs.groupby(["curr", "BU", "period"]).sum()
-    # gb_d_three_yrs.reset_index(inplace=True)
-    #
-
-    # gb_d_no_rebill = gb_d[~gb_d['rebill_rule'].isin(list_all_rebills)].copy()
-    # print('There are {} line items that are type D and have no rebill rule'.format(len(gb_d_no_rebill)))
-    #
-    # print("Length of monthly", len(gb_d_mthly))
-    # print("Length of quarterly", len(gb_d_qtrly))
-    # print("Length of semi ann", len(gb_d_semi_ann))
-    # print("Length of annual", len(gb_d_annual))
-    # print("Length of two years", len(gb_d_two_yrs))
-    # print("Length of three years", len(gb_d_three_yrs))
-    #
     # ## Building a single dataframe that incorporates all of this data
     #
     # - We will have the following descriptive fields
@@ -310,6 +171,34 @@ def clean_curr_and_zeros(df, config_dict):
     return df, model_dict
 
 def process_type_A(config_dict, dfr_A):
+    '''
+    Type A Billings
+
+    These billings are on a billing plan. The product config tells us how long before they renew
+    and the sub term determines how often they are billed. (See the document "Deferred Revenue Model August 2020"
+    in the docs subfolder for a better understanding of the details.
+
+    1M: config = 'MTHLY' or sub_term = 1
+    1Y: config = '1Y' AND sub term = 0 or 12  OR any config with sub_term = 12
+    2Y: config = '2Y' AND sub term = 0 or 24
+    3Y: config = '3Y' AND sub term = 0 or 36
+    There are also config types that do not allow us to map these into a billings frequency.
+    These types are {"BLANK", "OCONS", "ONORE", "OUNIV"}
+        These types are loaded from the type_A_no_config report, but we pass them back to the main
+        program to test that we have not dropped anything.
+
+    :param config_dict: This is the json config file. It contains a list 'type_A_config_keepers' that
+            has the list of config types we know how to process (i.e. we know how they will be rebilled)
+
+    :param dfr_A: This is the dataframe of deferred billings that have revenue recognition type A
+    :return: return_A_dict: A dictionary containing dataframes containing the billings that have the same
+                rebill frequency.
+                return_A_dict = {'gb_a_1M': gb_a_1M,
+                     'gb_a_1Y': gb_a_1Y,
+                     'gb_a_2Y': gb_a_2Y,
+                     'gb_a_3Y': gb_a_3Y,
+                     'gb_a_no_config': gb_a_no_config,}
+    '''
 
     # grouping by fields we need to keep.
     gb_a = dfr_a.groupby(["curr", "BU", "period", "config", "sub_term"], as_index=False).sum()
@@ -318,7 +207,7 @@ def process_type_A(config_dict, dfr_A):
     print(gb_a["config"].value_counts(dropna=False))
 
     # splitting into config types we keep and ones we need to get in the type_A_no_config report
-    config_type_keepers = ['MTHLY', '1Y', '2Y', '3Y']
+    config_type_keepers = config_dict['type_A_config_keepers']
     gb_a_keepers = gb_a[gb_a["config"].isin(config_type_keepers)].copy()
     df_a_no_config = gb_a[~gb_a["config"].isin(config_type_keepers)].copy()
 
@@ -355,6 +244,7 @@ def process_type_A(config_dict, dfr_A):
     gb_a_1Y.drop(labels=['sub_term'], axis=1, inplace=True)
     gb_a_2Y.drop(labels=['sub_term'], axis=1, inplace=True)
     gb_a_3Y.drop(labels=['sub_term'], axis=1, inplace=True)
+
     # dropping duration from the gb_a_#X below here
     return_A_dict = {'gb_a_1M': gb_a_1M,
                      'gb_a_1Y': gb_a_1Y,
@@ -365,7 +255,36 @@ def process_type_A(config_dict, dfr_A):
 
 
 def process_type_D(config_dict, df):
+    '''
+    TYPE D billings
+    These billings have a field 'Rule For Bill Date' that determines when new billings will occur
+     - Monthly:        *{Y1, Y2, Y3, Y5}*
+     - Quarterly:      *YQ*
+     - Every 4 months: *YT*  --NOTE: There are only 10 of these, so I am treating these as quarterly--
+     - Semi-annual:    *YH*
+     - Annual:         *{YA, YC}*
+     - Every 2 years:  *Y4*
+     - Every 3 years:  *Y7*
 
+     We also need to track the type D billings that do not have a 'Rule for Bill Date'
+
+    :param config_dict: This is the json config file. It contains a dictionary 'type_D_config_classification'
+        that has the list of rebill_rules we know how to process (i.e. we know when the contract will end)
+
+    :param df: This is the dataframe of deferred billings that have revenue recognition type D
+
+    :return: return_D_dict: A dictionary containing dataframes containing the billings that have the same
+                rebill_rule frequency.
+                return_dict = {'monthly': gb_d_mthly,
+                    'qtrly': gb_d_qtrly,
+                   'semi_ann': gb_d_semi_ann,
+                   'annual': gb_d_annual,
+                   'two_years': gb_d_two_yrs,
+                   'three_years': gb_d_three_yrs,
+                   'no_rebill': gb_d_no_rebill}
+
+    '''
+    #  We also need to track the type D billings that do not have a 'Rule for Bill Date'
     gb_d = df.groupby(["curr", "BU", "period", "rebill_rule", "sales_doc"], as_index=False).sum()
     gb_d.drop(labels=["sub_term"], axis=1, inplace=True)
 
@@ -428,6 +347,6 @@ def process_type_D(config_dict, df):
                    'two_years': gb_d_two_yrs,
                    'three_years': gb_d_three_yrs,
                    'no_rebill': gb_d_no_rebill}
-    return return dict
+    return return_dict
 
 

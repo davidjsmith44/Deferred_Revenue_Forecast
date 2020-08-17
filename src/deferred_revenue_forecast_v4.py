@@ -64,6 +64,10 @@ df_curr_map = load_curr_map(config_dict)
 df, model_dict, df_no_POB, df_a_no_config, gb_d_no_rebill = load_base_billings(config_dict)
 
 # TODO: create function to clean df_no_POB
+
+# TODO: why are there type B deferred billings with no POB type? No idea how to classify
+# They total negative 12M???
+
 # The data is already in the config_dict.
 print(df.head(10))
 print(df.columns)
