@@ -43,7 +43,7 @@ plt.style.use("ggplot")
 
 """ Data File Names and sheet names are contained in the config.json file """
 
-with open('../data/Data_2020_P06/config.json') as json_file:
+with open('config.json') as json_file:
     config_dict = json.load(json_file)
 
 """ Loading up the input files """
