@@ -386,11 +386,11 @@ def clean_df_columns(df):
     )
 
     # cleaning up the longer column names
-    df.rename(
-        index=str,
-        columns={"curr": "curr", "BU": "BU", "period": "period"},
-        inplace=True,
-    )
+    #df.rename(
+    #    index=str,
+    #    columns={"curr": "curr", "BU": "BU", "period": "period"},
+    #    inplace=True,
+    #)
 
     return df
 
@@ -2226,13 +2226,14 @@ def load_base_billings(config_dict):
     gb_svc = svc.groupby(["curr", "BU", "period"], as_index=False).sum()
     gb_svc.drop(labels=["sub_term", "duration"], axis=1, inplace=True)
 
+    # Deferred Type A Billings
     dfr.drop(labels=['duration'], axis=1, inplace=True)
 
-    # Deferred Type A Billings
     # split the type A billings based on their rebill frequency
     dfr_a = dfr[dfr["rev_req_type"] == "A"].copy()
 
     A_df_dict = process_type_A(config_dict, dfr_a)
+
     gb_a_1M = A_df_dict['gb_a_1M']
     gb_a_1Y = A_df_dict['gb_a_1Y']
     gb_a_2Y = A_df_dict['gb_a_2Y']
