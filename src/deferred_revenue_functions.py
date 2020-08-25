@@ -2308,3 +2308,74 @@ def load_base_billings(config_dict):
     df = clean_df_columns(df)
 
     return df, model_dict, df_no_POB, gb_a_no_config, gb_d_no_rebill
+
+def classify_no_POB(config_dict, df):
+    # duration was dropped earlier
+    #df.drop(labels=['duration'], axis=1, inplace=True)
+
+    dfr_a = df[df["rev_req_type"] == "A"].copy()
+    dfr_d = df[df["rev_req_type"] == "D"].copy()
+    svc = df[df['rev_req_type']=='B'].copy()
+
+    # processing the type A without a POB type
+    df_dict_A = process_type_A(config_dict, dfr_a)
+
+    gb_a_1M = df_dict_A['gb_a_1M']
+    gb_a_1Y = df_dict_A['gb_a_1Y']
+    gb_a_2Y = df_dict_A['gb_a_2Y']
+    gb_a_3Y = df_dict_A['gb_a_3Y']
+    gb_a_no_config = df_dict_A['gb_a_no_config']
+
+    # processing the type B without a POB type
+    return_dict = process_type_D(config_dict, dfr_d)
+
+    gb_d_mthly = return_dict['monthly']
+    gb_d_qtrly = return_dict['qtrly']
+    gb_d_semi_ann = return_dict['semi_ann']
+    gb_d_annual = return_dict['annual']
+    gb_d_two_yrs = return_dict['two_years']
+    gb_d_three_yrs = return_dict['three_years']
+    gb_d_no_rebill = return_dict['no_rebill']
+
+
+    gb_svc = svc.groupby(["curr", "BU", "period"], as_index=False).sum()
+    #gb_svc.drop(labels=["sub_term", "duration"], axis=1, inplace=True)
+
+    gb_rec = gb_d_no_rebill.groupby(["curr", "BU", "period"], as_index=False).sum()
+    #gb_rec.drop(labels=["duration", "sub_term"], axis=1, inplace=True)
+
+    list_df = [
+        gb_rec,
+        gb_svc,
+        gb_a_1M,
+        gb_a_1Y,
+        gb_a_2Y,
+        gb_a_3Y,
+        gb_d_mthly,
+        gb_d_qtrly,
+        gb_d_semi_ann,
+        gb_d_annual,
+        gb_d_two_yrs,
+        gb_d_three_yrs,
+    ]
+
+    list_columns = [
+        "recognized",
+        "service",
+        "deferred_1M_a",
+        "deferred_1Y_a",
+        "deferred_2Y_a",
+        "deferred_3Y_a",
+        "deferred_1M_d",
+        "deferred_3M_d",
+        "deferred_6M_d",
+        "deferred_1Y_d",
+        "deferred_2Y_d",
+        "deferred_3Y_d",
+    ]
+
+    df = merge_all_dataframes(list_df, list_columns)
+
+    df = clean_df_columns(df)
+
+    return df, gb_a_no_config

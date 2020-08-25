@@ -38,6 +38,8 @@ from scipy.interpolate import interp1d, griddata
 import json
 from deferred_revenue_functions import *
 
+from src.deferred_revenue_functions import classify_no_POB
+
 plt.style.use("ggplot")
 # Step 1: Processing Base Billings Data
 
@@ -71,6 +73,8 @@ df, model_dict, df_no_POB, df_a_no_config, gb_d_no_rebill = load_base_billings(c
 # The data is already in the config_dict.
 print(df.head(10))
 print(df.columns)
+
+df_no_POB, gb_a_no_config_2 = classify_no_POB(config_dict, df_no_POB)
 
 df_billings = add_type_A_billings(filename_billings,
                                   config_dict['billings']['type_A_sheetname'],
