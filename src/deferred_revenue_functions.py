@@ -161,6 +161,10 @@ def convert_fcst(df_fcst, df_FX_rates, list_columns, new_columns):
             (df_fcst["BU"] == this_BU) & (df_fcst["curr"] == this_curr)
             ].copy()
 
+        # Debug trap
+        if this_BU == "Print & Publishing":
+            if this_curr == 'USD':
+                print('we are here')
         for col in list_columns:
             new_column = col + "US"
             old_column = col + "DC"
@@ -168,9 +172,6 @@ def convert_fcst(df_fcst, df_FX_rates, list_columns, new_columns):
             DC_values = this_slice[old_column].values
             DC_values = DC_values.reshape(-1, 1)
             transp_fwds = transp_fwds.reshape(-1, 1)
-            if this_BU == "Print & Publishing":
-                if this_curr == 'USD':
-                    print('we are here')
 
             xx = DC_values * transp_fwds
 
