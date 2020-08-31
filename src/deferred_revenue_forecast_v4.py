@@ -192,6 +192,7 @@ print(
     "Length of df_billings before removal of old BUs and adding periods:",
     len(df_billings),
 )
+
 df_billings = add_billings_periods(df_billings)
 print(
     "Length of df_billings after removal of old BUs and adding periods:",
@@ -374,7 +375,7 @@ new_columns = [
 list_columns = [
     "recognized_",
     "service_",
-    "deferred_B_",
+    #"deferred_B_",
     "deferred_1M_",
     "deferred_3M_",
     "deferred_6M_",
@@ -425,133 +426,6 @@ test_EUR = df_fcst[df_fcst["curr"] == "EUR"]
 #
 
 
-def load_and_clean_waterfall(waterfall_filename, waterfall_sheetname):
-    df = pd.read_excel(
-        "../data/Data_2020_P06/Q2'20 Rev Acctg Mgmt Workbook (06-04-20).xlsx",
-        sheet_name="Deferred Revenue Forecast",
-        skiprows=5,
-    )
-
-    df.head(50)
-
-    df.columns
-
-    # ##### Stripping spaces from the External Reporting BU columns
-
-    df["External Reporting BU"] = df["External Reporting BU"].str.strip()
-
-    # ##### Clearing out rows below the table we need
-
-    end_loc = df[
-        df["External Reporting BU"] == "Grand Total inclusive of Magento/Marketo"
-        ]
-    end_index = end_loc.index[0]
-
-    df = df[df.index <= end_index]
-
-    df["External Reporting BU"].value_counts()
-
-    # ### We are just taking the following rows
-    # - Digital Media Total
-    # - Publishing Total
-    # - Digital Experience Total
-    # - Marketo Deferred
-    # - Magento Deferred
-    #
-    # Then we need to add the Marketo and Magento defered to the digital experience total
-
-    keeper_rows = [
-        "Digital Media Total",
-        "Publishing Total",
-        "Digital Experience Total",
-        "Marketo Deferred",
-        "Magento Deferred",
-        "Grand Total inclusive of Magento/Marketo",
-    ]
-
-    df_test = df[df["External Reporting BU"].isin(keeper_rows)]
-    df_test.head(10)
-
-    # ##### Cleaning out the bad colunns
-    df_test = df_test.loc[:, ~df_test.columns.str.contains("^Unnamed")]
-    df_test = df_test.drop(columns=["Major Product Config", " Historical"])
-
-    df_test.head(10)
-
-    # ## Add Magento and Marketo to Digital Experience
-    #
-    # ##### NOTE: The External Reporting BU is different the the BU we have in deferred.
-    # We will have to combine Creative and Document Cloud to get to the External Reporting BU since both show up as Digital Media in this accounting workbook
-    #
-
-    df_test["External Reporting BU"] = df_test["External Reporting BU"].str.replace(
-        "Magento Deferred", "Digital Experience Total"
-    )
-
-    df_test["External Reporting BU"] = df_test["External Reporting BU"].str.replace(
-        "Marketo Deferred", "Digital Experience Total"
-    )
-
-    # ##### Removing non-alphanumeric characters
-
-    changed_columns = df_test.columns.str.replace("'", "_")
-    changed_columns = changed_columns.str.replace("+", "")
-    df_test.columns = changed_columns
-
-    df_test_gb = df_test.groupby("External Reporting BU").sum()
-
-    # ### Now that we have the data that is all numeric, we need to adjust for the reporting in thousands (FP&A report)
-
-    df_test_gb = df_test_gb * 1000
-
-    # ### Creating the columns that have this amortization by period
-    #
-    # #### Note: My forecast looks at the end of period values always. The bookings forecast is quarterly, which we change to be a monthly (level) bookings forecast. To arrive at the value of the bookings forecast at the end of the first period, one period's worth (1/3) of a qarter, has already been booked and need to be eliminated from the dataframe.
-    #
-    # To adjust for this, the bookings dataframe will have a P0 that contains the first month's bookings and will be removed.
-    #
-    # This created an error the first time I tested the program that overstated the bookings, billings and deferred.
-
-    new_columns = []
-    for i in range(12 * 3):
-        if len(str(i)) == 1:
-            new_column = "P0" + str(i)
-        else:
-            new_column = "P" + str(i)
-        new_columns.append(new_column)
-
-    qtrly_list = [col for col in df_test_gb.columns if "Q" in col]
-
-    period_index = 0
-    for index, qtr in enumerate(qtrly_list):
-        df_test_gb[new_columns[period_index]] = df_test_gb[qtr] / 3
-        period_index += 1
-        df_test_gb[new_columns[period_index]] = df_test_gb[qtr] / 3
-        period_index += 1
-        df_test_gb[new_columns[period_index]] = df_test_gb[qtr] / 3
-        period_index += 1
-
-    # ## I Don't need the everything in this. I can now remove some of the details
-    #
-    # First check that my periods match the quarterly deferred numbers/
-
-    df_qtrly_only = df_test_gb.copy()
-    df_period_only = df_test_gb.copy()
-
-    df_period_only = df_period_only.loc[:, df_period_only.columns.str.contains("P")]
-    df_qtrly_only = df_qtrly_only.loc[:, ~df_qtrly_only.columns.str.contains("P")]
-
-    df_period_only["total"] = df_period_only.sum(axis=1)
-
-    # ##### OK My periods work fine. Now I can move on to saving this and finishing the defered waterfall
-
-    df_waterfall = df_test_gb.loc[:, df_test_gb.columns.str.contains("P")]
-
-    # ##### Now dropping P0 from the waterfall
-
-    df_waterfall = df_waterfall.drop("P00", axis=1)
-
-    return df_waterfall
 
 
 # Saving the waterfall as Q2_waterfall
