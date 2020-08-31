@@ -704,12 +704,8 @@ def build_monthly_forecast(X, y):
 
 
 def load_bookings(bookings_filename, bookings_sheetname="source"):
+
     df_bookings = pd.read_excel(bookings_filename, bookings_sheetname)
-
-    df_bookings.head(10)
-    # df_bookings.sample(10)
-    # df_bookings.tail(10)
-
     # ### Cleaning up the bookings data
     # ##### NOTE: The bookings spreadsheet looks very different for Q2 versus prior quarters!
     #  - remove odd strings such as '(GP)' from BU, (IS) from Internal Segment, etc
@@ -764,9 +760,6 @@ def load_bookings(bookings_filename, bookings_sheetname="source"):
         inplace=True,
     )
 
-    df_bookings.head(10)
-    # df_bookings.sample(10)
-    # df_bookings.tail(10)
     df_bookings = clean_bookings(df_bookings)
 
     return df_bookings
@@ -820,12 +813,6 @@ def clean_bookings(df_bookings):
     df_bookings["BU"] = df_bookings["BU"].replace(change_dict)
 
     df_bookings["BU"].value_counts()
-
-    # df_bookings['BU'].value_counts()
-    # df_bookings['segment'].value_counts()
-    # df_bookings['product'].value_counts()
-    df_bookings["country"].value_counts()
-    # df_bookings['booking_type'].value_counts();
 
     # #### The countries now contain two fields that we need to change
     # - UNKNOWN
@@ -1298,303 +1285,6 @@ def merge_billings_with_A(temp_flat_DC, temp_flat_US, df):
 
     return df_billings
 
-
-'''def load_base_billings(config_dict):
-    """ This loads up the base billings data and creates a dataframe
-
-    """
-    filename_billings = config_dict['path_to_data'] + config_dict['billings']['filename']
-    sheetname_billings = config_dict['billings']['base_sheetname']
-    df = pd.read_excel(filename_billings, sheet_name=sheetname_billings)
-
-    ###### Changing the column names early since they are inconsistent across other reports
-    df.rename(
-        index=str,
-        columns={
-            "Contrct Duration in Months": "duration",
-            "Document Currency": "curr",
-            "Enterprise BU Desc": "BU",
-            "Invoice Fiscal Year Period Desc": "period",
-            "POB Type": "POB_type",
-            "Product Config Type": "config",
-            "Rev Rec Category": "rev_req_type",
-            "Rule For Bill Date": "rebill_rule",
-            "Sales Document Type": "sales_doc",
-            "Sales Type": "sales_type",
-            "Subscription Term": "sub_term",
-            "Completed Sales ( DC )": "DC_amount",
-            "Completed Sales": "US_amount",
-        },
-        inplace=True,
-    )
-
-    # Removing currencies with less than n entries
-    vc = df["curr"].value_counts()
-    keep_these = vc.values > 20
-    keep_curr = vc[keep_these]
-    list_keepers = keep_curr.index
-    remove_these = vc[vc.values <= 20].index
-    model_dict = {"curr_removed": list(vc[remove_these].index)}
-    delete_curr = list(remove_these)
-
-    if "TRY" not in model_dict["curr_removed"]:
-        model_dict["curr_removed"].append("TRY")
-        delete_curr.append("TRY")
-        list_keepers = list_keepers.drop("TRY")
-
-    df = df[df["curr"].isin(list_keepers)]
-
-    #clearing out zero amounts
-    df = df[df["DC_amount"] != 0]
-
-    # The new tableau database that uses POB type does NOT have a NON-REV type
-    # Just going to comment this out
-    # df = df[df["Sales Type"] != "NON-REV"]
-
-    # ## Grouping the billings by POB Type
-    # list_IR = ['IR', 'IR-NA', 'LFB']
-    # list_service = ['CR', 'CR-NA']
-    # list_deferred = ['RR', 'RR-NA']
-    # list_hybrid = ['BNDL']
-    list_IR = config_dict['POB_type_classifier']['list_IR']
-    list_service = config_dict['POB_type_classifier']['list_service']
-    list_deferred = config_dict['POB_type_classifier']['list_deferred']
-    list_hybrid = config_dict['POB_type_classifier']['list_hybrid']
-    list_all = list_IR + list_service + list_deferred + list_hybrid
-
-    rec = df[df["POB_type"].isin(list_IR)].copy()
-    svc = df[df["POB_type"].isin(list_service)].copy()
-    dfr = df[df["POB_type"].isin(list_deferred)].copy()
-    df_hyb = df[df["POB_type"].isin(list_hybrid)].copy()
-    df_no_POB = df[~df["POB_type"].isin(list_all)].copy()
-
-    df_hyb_IR, df_hyb_dfr = split_hybrid_dataframe(df_hyb, config_dict)
-
-    # concatenate df_hyb_IR with rec and df_hyb_drf with df_hyb_drf
-    rec = pd.concat([rec, df_hyb_IR])
-    dfr = pd.concat([dfr, df_hyb_dfr])
-
-    # Recognized Revenue
-    # Below we are grouping the rec dataframe by Currency, Business Unit and Period and cleaning up the data we do not need. Since the recognized revenue go directly to revenue, there is no contract that will renew and need to be modeled in the future.
-
-    # testing groupby object
-    gb_rec = rec.groupby(["curr", "BU", "period"], as_index=False).sum()
-    gb_rec.drop(labels=["duration", "sub_term"] , axis=1, inplace=True)
-
-    # Service Billings
-    # Below we are grouping the svc dataframe by Currency, Business Unit and Period and
-    # cleaning up the data we do not need. Since the service billings go directly to revenue,
-    # there is no contract that will renew and need to be modeled in the future.
-    # TODO: Take care of the service billings (how should they amortize?)
-    # possibly only a problem when we get to deferred revenue (forecasting)
-    gb_svc = svc.groupby(["curr", "BU", "period"], as_index=False).sum()
-    gb_svc.drop(labels=["sub_term", "duration"], axis=1, inplace=True)
-
-    # Deffered Billings
-    # Type B Billings
-    # THERE ARE NO LONGER ANY DEFERRED TYPE B BILLINGS!!!
-    # these are now all service based billings and the POB type determines if they sit in deferred
-    # such as CR or CR-NA billings or go immediately to revenue IR, IR-NA, LFB
-    #dfr_b = dfr[dfr["rev_req_type"] == "B"].copy()
-    #gb_b = dfr_b.groupby(["curr", "BU", "period"], as_index=False).sum()
-    #gb_b.drop(labels="Subscription Term", axis=1, inplace=True)
-
-    # duration is only necessary for modeling new service type billings.
-    # since this is not needed in the deferred billings, we are dropping it here
-    dfr.drop(labels=['duration'], axis=1, inplace=True)
-
-    # #### Type A Billings
-    #
-    # These billings are on a billing plan. The product config tells us how long before they renew
-    # and the sub term determines how often they are billed. (This is new)
-    #
-    #  1M: config = 'MTHLY' or sub_term = 1
-    #  1Y: config = '1Y' AND sub term = 0 or 12  OR any config with sub_term = 12
-    #  2Y: config = '2Y' AND sub term = 0 or 24
-    #  3Y: config = '3Y' AND sub term = 0 or 36
-    #  There are also config types that do not allow us to map these into a billings frequency.
-    # These types are {"BLANK", "OCONS", "ONORE", "OUNIV"}
-    # These types are loaded from the type_A_no_config report.
-
-    dfr_a = dfr[dfr["rev_req_type"] == "A"].copy()
-
-    #grouping by fields we need to keep.
-    gb_a = dfr_a.groupby(["curr", "BU", "period", "config", "sub_term"], as_index=False).sum()
-
-    print('A config value counts')
-    print(gb_a["config"].value_counts(dropna=False))
-
-    # splitting into config types we keep and ones we need to get in the type_A_no_config report
-    config_type_keepers = ['MTHLY', '1Y', '2Y', '3Y']
-    gb_a_keepers = gb_a[gb_a["config"].isin(config_type_keepers)].copy()
-    df_a_no_config = gb_a[~gb_a["config"].isin(config_type_keepers)].copy()
-
-    print('len gb_a', len(gb_a))
-    print('gb_a_keepers', len(gb_a_keepers))
-    print('len df_a_no_config', len(df_a_no_config))
-    print('Total USD Equivalent Billings of Type A with bad configs', df_a_no_config.US_amount.sum())
-
-    # ###### Grouping by the config type into gb_a_1Y, gb_a_2Y, gb_a_3y, gb_a_1M dataframes
-    # Selecting monthly billings
-    gb_a_1M = gb_a_keepers[(gb_a_keepers['config'] == 'MTHLY') |
-                         (gb_a_keepers['sub_term'] == 1)].copy()
-    index_1M = gb_a_1M.index
-    # dropping monthly billings from the keepers
-    gb_a_keepers.drop(index_1M, inplace=True)
-
-    gb_a_1Y = gb_a_keepers[(gb_a_keepers['sub_term'] == 12) |
-                         ((gb_a_keepers['sub_term'] == 0) &
-                          (gb_a_keepers['config'] == '1Y'))].copy()
-    index_1Y = gb_a_1Y.index
-    gb_a_keepers.drop(index_1Y, inplace=True)
-
-    # remaining types will be 2Y with sub_term = 0 or 24 or 3Y with 0 or 36
-    gb_a_2Y = gb_a_keepers[gb_a_keepers['config'] == '2Y'].copy()
-    gb_a_3Y = gb_a_keepers[gb_a_keepers['config'] == '3Y'].copy()
-
-    print("this is the length of type A 1M billings: ", len(gb_a_1M))
-    print("this is the length of type A 1Y billings: ", len(gb_a_1Y))
-    print("this is the length of type A 2Y billings: ", len(gb_a_2Y))
-    print("this is the length of type A 3Y billings: ", len(gb_a_3Y))
-
-    # Cleaning up the sub_term columns from the gb_A_#X variabels
-    gb_a_1M.drop(labels = ['sub_term'], axis=1, inplace=True)
-    gb_a_1Y.drop(labels=['sub_term'], axis=1, inplace=True)
-    gb_a_2Y.drop(labels=['sub_term'], axis=1, inplace=True)
-    gb_a_3Y.drop(labels=['sub_term'], axis=1, inplace=True)
-    # dropping duration from the gb_a_#X below here
-
-
-
-    # #### TYPE D billings
-    # These billings have a field 'Rule For Bill Date' that determines when new billings will occur
-    #  - Monthly:        *{Y1, Y2, Y3, Y5}*
-    #  - Quarterly:      *YQ*
-    #  - Every 4 months: *YT*  --NOTE: There are only 10 of these, so I am treating these as quarterly--
-    #  - Semi-annual:    *YH*
-    #  - Annual:         *{YA, YC}*
-    #  - Every 2 years:  *Y4*
-    #  - Every 3 years:  *Y7*
-    #
-    #  We also need to track the type D billings that do not have a 'Rule for Bill Date'
-
-    dfr_d = dfr[dfr["rev_req_type"] == "D"].copy()
-
-    gb_d = dfr_d.groupby(["curr", "BU", "period", "rebill_rule", "sales_doc"], as_index=False).sum()
-    gb_d.drop(labels=["sub_term"], axis=1, inplace=True)
-
-    gb_d["rebill_rule"].value_counts(dropna=False)
-
-    # ###### Grouping these by rebill rule and incorporating rebill rules that have the same rebill period
-
-    list_monthly = config_dict['type_D_classification']["list_monthly"]
-    list_qtrly = config_dict['type_D_classification']["list_qtrly"]
-    list_semi_ann = config_dict['type_D_classification']["list_semi_ann"]
-    list_ann = config_dict['type_D_classification']["list_ann"]
-    list_2yrs = config_dict['type_D_classification']["list_2yrs"]
-    list_3yrs = config_dict['type_D_classification']["list_3yrs"]
-    list_all_rebills = list_monthly + list_qtrly + list_semi_ann + list_ann + list_2yrs + list_3yrs
-
-    # TODO: We need to create a test that all of the rebill_rule fields are in list_all_rebills
-
-    gb_d_mthly = gb_d[gb_d["rebill_rule"].isin(list_monthly)].copy()
-    gb_d_mthly.drop(labels="rebill_rule", axis=1, inplace=True)
-    gb_d_mthly = gb_d_mthly.groupby(["curr", "BU", "period"]).sum()
-    gb_d_mthly.reset_index(inplace=True)
-
-    gb_d_qtrly = gb_d[gb_d["rebill_rule"].isin(list_qtrly)].copy()
-    gb_d_qtrly.drop(labels="rebill_rule", axis=1, inplace=True)
-    gb_d_qtrly = gb_d_qtrly.groupby(["curr", "BU", "period"]).sum()
-    gb_d_qtrly.reset_index(inplace=True)
-
-    gb_d_semi_ann = gb_d[gb_d["rebill_rule"].isin(list_semi_ann)]
-    gb_d_semi_ann.drop(labels="rebill_rule", axis=1, inplace=True)
-    gb_d_semi_ann = gb_d_semi_ann.groupby(["curr", "BU", "period"]).sum()
-    gb_d_semi_ann.reset_index(inplace=True)
-
-    gb_d_annual = gb_d[gb_d["rebill_rule"].isin(list_ann)].copy()
-    gb_d_annual.drop(labels="rebill_rule", axis=1, inplace=True)
-    gb_d_annual = gb_d_annual.groupby(["curr", "BU", "period"]).sum()
-    gb_d_annual.reset_index(inplace=True)
-
-    gb_d_two_yrs = gb_d[gb_d["rebill_rule"].isin(list_2yrs)].copy()
-    gb_d_two_yrs.drop(labels="rebill_rule", axis=1, inplace=True)
-    gb_d_two_yrs = gb_d_two_yrs.groupby(["curr", "BU", "period"]).sum()
-    gb_d_two_yrs.reset_index(inplace=True)
-
-    gb_d_three_yrs = gb_d[gb_d["rebill_rule"].isin(list_3yrs)]
-    gb_d_three_yrs.drop(labels="rebill_rule", axis=1, inplace=True)
-    gb_d_three_yrs = gb_d_three_yrs.groupby(["curr", "BU", "period"]).sum()
-    gb_d_three_yrs.reset_index(inplace=True)
-
-    # TODO: Create a check to see if there are any type D deferred billings with no rebill rule
-    gb_d_no_rebill = gb_d[~gb_d['rebill_rule'].isin(list_all_rebills)].copy()
-    print('There are {} line items that are type D and have no rebill rule'.format(len(gb_d_no_rebill)))
-
-    print("Length of monthly", len(gb_d_mthly))
-    print("Length of quarterly", len(gb_d_qtrly))
-    print("Length of semi ann", len(gb_d_semi_ann))
-    print("Length of annual", len(gb_d_annual))
-    print("Length of two years", len(gb_d_two_yrs))
-    print("Length of three years", len(gb_d_three_yrs))
-
-    # ## Building a single dataframe that incorporates all of this data
-    #
-    # - We will have the following descriptive fields
-    #    - Invoicing Fiscal Year-Period
-    #    - Document Currency Billing Amount
-    #    - USD Billing Amount
-    #    - Enterprise BU
-    #
-    # - We will have the following fields based on rebilling rule
-    #    - Recognized
-    #    - Service
-    #    - Monthly
-    #    - Quarterly
-    #    - Annual
-    #    - Two Years
-    #    - Three Years
-
-    # ###### Below uses functions to merge a list of dataframes and move billings amounts to the correct category based on rebill frequency and type
-    #
-
-    list_df = [
-        gb_rec,
-        gb_svc,
-        gb_a_1M,
-        gb_a_1Y,
-        gb_a_2Y,
-        gb_a_3Y,
-        gb_d_mthly,
-        gb_d_qtrly,
-        gb_d_semi_ann,
-        gb_d_annual,
-        gb_d_two_yrs,
-        gb_d_three_yrs,
-    ]
-
-    list_columns = [
-        "recognized",
-        "service",
-        "deferred_1M_a",
-        "deferred_1Y_a",
-        "deferred_2Y_a",
-        "deferred_3Y_a",
-        "deferred_1M_d",
-        "deferred_3M_d",
-        "deferred_6M_d",
-        "deferred_1Y_d",
-        "deferred_2Y_d",
-        "deferred_3Y_d",
-    ]
-
-    df = merge_all_dataframes(list_df, list_columns)
-
-    df = clean_df_columns(df)
-
-    return df, model_dict, df_no_POB, df_a_no_config
-
-'''
 def interp_FX_fwds(df_FX_rates):
     """ Creates monthly interpolated rates from the df_FX_rates file and adds the is_direct field """
     # Create list of tickers to determine which is direct (if USD is the first currency, it is direct)
@@ -1947,11 +1637,8 @@ def convert_bookings_to_DC(df_book_period, df_FX_fwds):
     df_book_period["P11_DC"] = df_book_period["P11"] * df_book_period["FX_fwd_rate"]
     df_book_period["P12_DC"] = df_book_period["P12"] * df_book_period["FX_fwd_rate"]
 
-    # df_book_period.head(10)
-    # df_book_period.sample(10)
-    df_book_period.tail(10)
-
-    # ##### The df_book_period dataframe now has columns for bookings each period in both local currency and document currency
+    # The df_book_period dataframe now has columns for bookings each period
+    # in both local currency and document currency
 
     return df_book_period
 
@@ -2569,3 +2256,64 @@ def load_and_clean_waterfall(waterfall_filename, waterfall_sheetname):
 
     return df_waterfall
 
+def configure_df_fcst(df_billings, df_cal, config_dict):
+    # This function sets up a dataframe to be used for the df_fcst
+    # We need three variables -
+    # 1. BUs
+    # 2. currencies
+    # 3. periods
+    #
+    # creating the list of historical bill periods
+    #
+    # INPUTS
+    #   df_billings
+    #   config_dict
+    # OUTPUT
+    #   df_fcst (a dataframe of zeros needed to
+    v_BU = df_billings["BU"].copy()
+    v_curr = df_billings["curr"].copy()
+    v_both = v_BU + v_curr
+    v_unique = v_both.unique()
+
+    v_un_BU = [sub[:-3] for sub in v_unique]
+    v_un_curr = [sub[-3:] for sub in v_unique]
+
+    list_future_periods = config_dict['list_future_periods']
+
+    # creating the vectors for the future billings dataframe
+    v_BU_2_df = []
+    v_curr_2_df = []
+    v_period_2_df = []
+
+    for i in range(len(v_un_BU)):
+        this_BU = v_un_BU[i]
+        this_curr = v_un_curr[i]
+
+        for period in list_future_periods:
+            v_BU_2_df.append(this_BU)
+            v_curr_2_df.append(this_curr)
+            v_period_2_df.append(period)
+
+    print("This is the length of the vectors: ", len(v_BU_2_df))
+
+    # Creating a list of the columns that we need to use in the df_billings dataframe (They contain document currency billings)
+
+    list_all_columns = df_billings.columns
+
+    list_keepers = []
+    for i in list_all_columns:
+
+        if i[-2:] == "DC":
+            list_keepers.append(i)
+
+    # ##### Creating the df_fcst dataframe with every currency, BU and period we need
+    df_fcst = pd.DataFrame({"curr": v_curr_2_df, "BU": v_BU_2_df, "period": v_period_2_df})
+
+    #  Adding the columns we need to populate (list_keepers)
+    for col in list_keepers:
+        df_fcst[col] = 0
+
+    df_fcst = df_fcst.merge(df_cal, how="left", left_on="period", right_on="period_match")
+    df_fcst.drop(["period_match"], axis=1, inplace=True)
+
+    return df_fcst
