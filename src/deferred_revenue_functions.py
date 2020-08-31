@@ -1007,7 +1007,10 @@ def bring_wf_forward(df):
     return df
 
 
-def add_type_A_billings(billings_filename, type_A_sheetname, df, model_dict):
+def add_type_A_billings(config_dict, df, model_dict):
+    billings_filename = config_dict['path_to_data'] + config_dict['billings']['filename']
+    type_A_sheetname = config_dict['billings']['type_A_sheetname']
+
     temp_flat_DC, temp_flat_US = load_and_clean_type_A(
         billings_filename, model_dict, type_A_sheetname
     )
@@ -2035,7 +2038,13 @@ def process_type_A(config_dict, df):
     gb_a_1Y.drop(labels=['sub_term'], axis=1, inplace=True)
     gb_a_2Y.drop(labels=['sub_term'], axis=1, inplace=True)
     gb_a_3Y.drop(labels=['sub_term'], axis=1, inplace=True)
-    # dropping duration from the gb_a_#X below here
+
+    # need to group these so we do not have duplicate BU, curr, period pairs
+    gb_a_1M = gb_a_1M.groupby(['curr', 'BU', 'period'], as_index=False).sum()
+    gb_a_1Y = gb_a_1Y.groupby(['curr', 'BU', 'period'], as_index=False).sum()
+    gb_a_2Y = gb_a_2Y.groupby(['curr', 'BU', 'period'], as_index=False).sum()
+    gb_a_3Y = gb_a_3Y.groupby(['curr', 'BU', 'period'], as_index=False).sum()
+
     return_A_dict = {'gb_a_1M': gb_a_1M,
                      'gb_a_1Y': gb_a_1Y,
                      'gb_a_2Y': gb_a_2Y,
@@ -2188,7 +2197,8 @@ def load_base_billings(config_dict):
         },
         inplace=True,
     )
-
+    # getting rid of duration here
+    df.drop(labels=["duration"], axis=1, inplace=True)
     df, model_dict = clean_curr_and_zeros(df, config_dict)
 
     # POB Type Classifier
@@ -2215,7 +2225,7 @@ def load_base_billings(config_dict):
 
     # Grouping by currency, BU and period to save space
     gb_rec = rec.groupby(["curr", "BU", "period"], as_index=False).sum()
-    gb_rec.drop(labels=["duration", "sub_term"] , axis=1, inplace=True)
+    gb_rec.drop(labels=["sub_term"] , axis=1, inplace=True)
 
     # Service Billings
     # Below we are grouping the svc dataframe by Currency, Business Unit and Period and
@@ -2224,11 +2234,9 @@ def load_base_billings(config_dict):
     # TODO: Take care of the service billings (how should they amortize?)
     # possibly only a problem when we get to deferred revenue (forecasting)
     gb_svc = svc.groupby(["curr", "BU", "period"], as_index=False).sum()
-    gb_svc.drop(labels=["sub_term", "duration"], axis=1, inplace=True)
+    gb_svc.drop(labels=["sub_term"], axis=1, inplace=True)
 
     # Deferred Type A Billings
-    dfr.drop(labels=['duration'], axis=1, inplace=True)
-
     # split the type A billings based on their rebill frequency
     dfr_a = dfr[dfr["rev_req_type"] == "A"].copy()
 
@@ -2310,16 +2318,58 @@ def load_base_billings(config_dict):
     return df, model_dict, df_no_POB, gb_a_no_config, gb_d_no_rebill
 
 def classify_no_POB(config_dict, df):
-    # duration was dropped earlier
-    #df.drop(labels=['duration'], axis=1, inplace=True)
+    # When there is no POB type, we need to classify based on sales document type
+    # the dataframe df that gets passed in here is df_no_POB
+    sales_doc_type = config_dict["sales_doc_type"]
 
-    dfr_a = df[df["rev_req_type"] == "A"].copy()
-    dfr_d = df[df["rev_req_type"] == "D"].copy()
-    svc = df[df['rev_req_type']=='B'].copy()
+    # Step 1: Split these based on the sales_doc_type
+    rec_no_POB = df[df['sales_doc'].isin(sales_doc_type['immediate_revenue'])].copy()
+    svc_no_POB = df[df['sales_doc'].isin(sales_doc_type['service'])].copy()
+    dfr_no_POB = df[df['sales_doc'].isin(sales_doc_type['deferred'])].copy()
+
+    # Try to classify the deferred billings based on rev req type
+    # First I need to deal with the ZCSB sales type which are all type D
+    # create slice/copy of dfr where rev_req_type == D OR sales_doc == ZCSB
+    # then delete these from dfr
+    dfr_d = dfr_no_POB[(dfr_no_POB["rev_req_type"] == "D") |
+                        (dfr_no_POB['sales_doc']=='ZCSB')].copy()
+    index_d_delete = dfr_d.index
+    dfr_no_POB.drop(index_d_delete, inplace=True)
+
+    # now classify the remainder based on if they are A or B or neither
+    dfr_a = dfr_no_POB[dfr_no_POB["rev_req_type"] == "A"].copy()
+    dfr_svc = dfr_no_POB[dfr_no_POB['rev_req_type']=='B'].copy()
+    no_rev_req_type = dfr_no_POB[~dfr_no_POB['rev_req_type'].isin(['A', 'B', 'D'])].copy()
+
+    print("These have no rev req type and will be treated as immediate revenue")
+    print(no_rev_req_type)
+
+    # combining rec_no_POB with no_rev_req_type (no_rev_req_type assume immediate revenue)
+    #df_rec_merged = pd.merge(
+    #    rec_no_POB,
+    #    no_rev_req_type,
+    #    how="outer",
+    #    left_on=["curr", "BU", "period"],
+    #    right_on=["curr", "BU", "period"]
+    #)
+    df_rec = pd.concat([rec_no_POB, no_rev_req_type])
+    gb_rec = df_rec.groupby(["curr", "BU", "period"]).sum()
+    gb_rec.drop(labels=["sub_term"], axis=1, inplace=True)
+
+    # combining the two types of service revenue
+    #df_svc_merged = pd.merge(
+    #    svc_no_POB,
+    #    dfr_svc,
+    #    how="outer",
+    #    left_on=["curr", "BU", "period"],
+    #    right_on=["curr", "BU", "period"]
+    #)
+    df_svc = pd.concat([svc_no_POB, dfr_svc])
+    gb_svc = df_svc.groupby(["curr", "BU", "period"]).sum()
+    gb_svc.drop(labels=["sub_term"], axis=1, inplace=True)
 
     # processing the type A without a POB type
     df_dict_A = process_type_A(config_dict, dfr_a)
-
     gb_a_1M = df_dict_A['gb_a_1M']
     gb_a_1Y = df_dict_A['gb_a_1Y']
     gb_a_2Y = df_dict_A['gb_a_2Y']
@@ -2328,7 +2378,6 @@ def classify_no_POB(config_dict, df):
 
     # processing the type B without a POB type
     return_dict = process_type_D(config_dict, dfr_d)
-
     gb_d_mthly = return_dict['monthly']
     gb_d_qtrly = return_dict['qtrly']
     gb_d_semi_ann = return_dict['semi_ann']
@@ -2336,13 +2385,6 @@ def classify_no_POB(config_dict, df):
     gb_d_two_yrs = return_dict['two_years']
     gb_d_three_yrs = return_dict['three_years']
     gb_d_no_rebill = return_dict['no_rebill']
-
-
-    gb_svc = svc.groupby(["curr", "BU", "period"], as_index=False).sum()
-    #gb_svc.drop(labels=["sub_term", "duration"], axis=1, inplace=True)
-
-    gb_rec = gb_d_no_rebill.groupby(["curr", "BU", "period"], as_index=False).sum()
-    #gb_rec.drop(labels=["duration", "sub_term"], axis=1, inplace=True)
 
     list_df = [
         gb_rec,
@@ -2356,7 +2398,7 @@ def classify_no_POB(config_dict, df):
         gb_d_semi_ann,
         gb_d_annual,
         gb_d_two_yrs,
-        gb_d_three_yrs,
+        gb_d_three_yrs
     ]
 
     list_columns = [
@@ -2371,11 +2413,11 @@ def classify_no_POB(config_dict, df):
         "deferred_6M_d",
         "deferred_1Y_d",
         "deferred_2Y_d",
-        "deferred_3Y_d",
+        "deferred_3Y_d"
     ]
 
     df = merge_all_dataframes(list_df, list_columns)
 
     df = clean_df_columns(df)
 
-    return df, gb_a_no_config
+    return df, gb_a_no_config, gb_d_no_rebill

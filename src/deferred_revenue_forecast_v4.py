@@ -74,12 +74,21 @@ df, model_dict, df_no_POB, df_a_no_config, gb_d_no_rebill = load_base_billings(c
 print(df.head(10))
 print(df.columns)
 
-df_no_POB, gb_a_no_config_2 = classify_no_POB(config_dict, df_no_POB)
+df_no_POB, gb_a_no_config_2, df_d_no_rebill = classify_no_POB(config_dict, df_no_POB)
 
-df_billings = add_type_A_billings(filename_billings,
-                                  config_dict['billings']['type_A_sheetname'],
-                                  df,
-                                  model_dict)
+# combine df_no_POB with df
+df = pd.concat([df, df_no_POB])
+df = df.groupby(["curr", "BU", "period"]).sum()
+
+# combine the type_A no config
+df_A_no_config = pd.concat([df_a_no_config, gb_a_no_config_2])
+df_A_no_config = df_A_no_config.groupby(["curr", "BU", "period"]).sum()
+
+# check to see if there are any in df_d_no_rebill
+if len(df_d_no_rebill) > 0:
+    print('check the df_d_no_rebill variable. It is not empty')
+
+df_billings = add_type_A_billings(config_dict, df, model_dict)
 
 error_duplicates = test_df_duplicates(df_billings)
 if error_duplicates:
