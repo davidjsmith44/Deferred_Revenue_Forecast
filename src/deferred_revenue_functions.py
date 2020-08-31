@@ -11,6 +11,8 @@ plt.style.use("ggplot")
 def load_FX_data(config_dict):
     filename_FX = config_dict['path_to_data'] + config_dict['FX_rates']['filename']
     df_FX_rates = pd.read_excel(filename_FX, sheet_name=config_dict['FX_rates']['sheetname'])
+    # some of the currencies do not contain forwards, so just filling across (as if no points)
+    df_FX_rates = df_FX_rates.fillna(method='ffill', axis=1)
     df_FX_rates["VOL_3M"] = df_FX_rates["VOL_3M"] / 100
     df_FX_rates["VOL_6M"] = df_FX_rates["VOL_6M"] / 100
     df_FX_rates["VOL_9M"] = df_FX_rates["VOL_9M"] / 100
@@ -172,6 +174,18 @@ def convert_fcst(df_fcst, df_FX_rates, list_columns, new_columns):
             DC_values = this_slice[old_column].values
             DC_values = DC_values.reshape(-1, 1)
             transp_fwds = transp_fwds.reshape(-1, 1)
+
+            if len(DC_values) != 12:
+                print('DC values are not correct shape')
+                print('Here are the DC_values')
+                print(DC_values)
+                print('Here is the shape', DC_values.shape)
+
+            if len(transp_fwds) != 12:
+                print('transp_fwds are not correct shape')
+                print('Here are the transp_fwds')
+                print(transp_fwds)
+                print('Here is the shape', transp_fwds.shape)
 
             xx = DC_values * transp_fwds
 
