@@ -65,15 +65,6 @@ df_curr_map = load_curr_map(config_dict)
 #filename_billings = config_dict['path_to_data'] + config_dict['billings']['filename']
 df, model_dict, df_no_POB, df_a_no_config, gb_d_no_rebill = load_base_billings(config_dict)
 
-# TODO: create function to clean df_no_POB
-
-# TODO: why are there type B deferred billings with no POB type? No idea how to classify
-# They total negative 12M???
-
-# The data is already in the config_dict.
-print(df.head(10))
-print(df.columns)
-
 df_no_POB, gb_a_no_config_2, df_d_no_rebill = classify_no_POB(config_dict, df_no_POB)
 
 # combine df_no_POB with df
@@ -97,7 +88,9 @@ if error_duplicates:
 df_billings = df_billings.sort_values(
     ["curr", "BU", "period"], ascending=(True, True, True)
 )
-
+df_no_POB, gb_a_no_config_2, df_d_no_rebill
+initial_dict = {'end_billings': df_billings,
+                }
 # with open("../data/processed/all_billings2.p", "wb") as f:
 #    pickle.dump(df_billings, f)
 
@@ -522,7 +515,6 @@ df_waterfall["period"] = "2020-07"
 
 df_waterfall = df_waterfall.reset_index()
 
-# TODO: learn pycharm
 df_waterfall.rename(columns={"External Reporting BU": "BU"}, inplace=True)
 
 # ## ADDING ADDITONAL PERIODS HERE TO MERGE WITH df_wf
