@@ -70,7 +70,8 @@ base_bill_dict = {'df': df,
                   'df_no_POB': df_no_POB,
                   'df_a_no_config': df_a_no_config,
                   'gb_d_no_rebill': gb_d_no_rebill}
-int_output_1_fname = config_dict['output_directory']['config'] + "int_output_1.p"
+
+int_output_1_fname = config_dict['output_dir']['intermediate'] + "int_output_1.p"
 
 with open(int_output_1_fname, "wb") as f:
     pickle.dump(base_bill_dict, f)
@@ -94,7 +95,7 @@ post_POB_dict = {'df_no_POB': df_no_POB,
                  'df': df,
                  'df_A_no_config': df_A_no_config}
 
-int_output_2_fname = config_dict['output_directory']['config'] + "int_output_2.p"
+int_output_2_fname = config_dict['output_dir']['intermediate'] + "int_output_2.p"
 with open(int_output_2_fname, "wb") as f:
     pickle.dump(post_POB_dict, f)
 
@@ -108,7 +109,7 @@ if error_duplicates:
 df_billings = df_billings.sort_values(
     ["curr", "BU", "period"], ascending=(True, True, True))
 
-int_output_3_fname =  config_dict['output_directory']['config'] + "int_output_3.p"
+int_output_3_fname =  config_dict['output_dir']['intermediate'] + "int_output_3.p"
 with open(int_output_3_fname, "wb") as f:
     pickle.dump(df_billings, f)
 
@@ -146,7 +147,7 @@ input_df_dict = {
     "FX_forwards": df_FX_fwds,
     "FX_rates": df_FX_rates,
 }
-int_output_4_fname = config_dict['output_directory']['config'] + "int_output_4.p"
+int_output_4_fname = config_dict['output_dir']['intermediate'] + "int_output_4.p"
 with open(int_output_4_fname, "wb") as f:
     pickle.dump(input_df_dict, f)
 
@@ -272,7 +273,7 @@ input_df_dict = {
     "FX_rates": df_FX_rates,
     "forecast": df_fcst,
 }
-int_output_5_fname = config_dict['output_directory']['config'] + "int_output_5.p"
+int_output_5_fname = config_dict['output_dir']['intermediate'] + "int_output_5.p"
 with open(int_output_5_fname, "wb") as f:
     pickle.dump(input_df_dict, f)
 
@@ -348,8 +349,7 @@ print(dc / us)
 
 df_fcst = merge_bookings_to_fcst(df_book_period, df_fcst)
 
-
-
+'''
 
 
 test_EUR = df_fcst[df_fcst["curr"] == "EUR"]
@@ -519,14 +519,16 @@ with pd.ExcelWriter("output.xlsx") as writer:
 
 
 def create_for_curr_billings(df_all, file_name):
-    '''
+    #'''
+
+'''
     Need to recreate the report foreign currency billings excel forecast
     :param df_all:
     :param file_name:
     :return:
     '''
 
-
+'''
 # ## Add the as performed back into the waterfall forecast
 
 df_all["Total"] = df_all[df_all.columns[:-1]].sum(axis=1)
@@ -584,3 +586,5 @@ input_df_dict = {
     "waterfall": df_all,
 }
 pickle.dump(input_df_dict, open("../data/processed/final_forecast2.p", "wb"))
+
+'''
