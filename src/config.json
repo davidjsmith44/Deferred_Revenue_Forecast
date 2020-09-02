@@ -83,6 +83,10 @@
         "fwd_12M"
     ],
     "path_to_data": "../data/Data_2020_P06/",
+    "output_dir": {
+        "intermediate": "../data/processed/intermediate/",
+        "final": "../data/processed/final/"
+    },
     "sales_doc_type": {
         "immediate_revenue": [
             "L2",
