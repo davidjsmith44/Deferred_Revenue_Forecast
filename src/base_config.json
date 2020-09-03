@@ -1,16 +1,4 @@
 {
-    "ADBE_cal": {
-        "direct_filename": "../Data/OLD/ADOBE_FINANCIAL_CALENDAR.xlsx",
-        "sheetname": "ADBE_cal"
-    },
-    "FX_forwards": {
-        "filename": "FX_forward_rates.xlsx",
-        "sheetname": "forward_data"
-    },
-    "FX_rates": {
-        "filename": "FX_data.xlsx",
-        "sheetname": "to_matlab"
-    },
     "POB_type_classifier": {
         "list_IR": [
             "IR",
@@ -29,19 +17,6 @@
             "BNDL"
         ]
     },
-    "billings": {
-        "filename": "all_billings_inputs.xlsx",
-        "base_sheetname": "base_billings",
-        "type_A_sheetname": "type_A_no_config"
-    },
-    "bookings": {
-        "filename": "2020_bookings_fcst_Q2.xlsx",
-        "sheetname": "source"
-    },
-    "curr_map": {
-        "filename": "currency_map.xlsx",
-        "sheetname": "curr_map"
-    },
     "hybrid_pct_IR": 0.17,
     "list_columns": [
         "recognized_",
@@ -53,20 +28,6 @@
         "deferred_1Y_",
         "deferred_2Y_",
         "deferred_3Y_"
-    ],
-    "list_future_periods": [
-        "2020-10",
-        "2020-11",
-        "2020-12",
-        "2021-01",
-        "2021-02",
-        "2021-03",
-        "2021-04",
-        "2021-05",
-        "2021-06",
-        "2021-07",
-        "2021-08",
-        "2021-09"
     ],
     "new_columns": [
         "fwd_01M",
@@ -82,11 +43,6 @@
         "fwd_11M",
         "fwd_12M"
     ],
-    "path_to_data": "../data/Data_2020_P09/",
-    "output_dir": {
-        "intermediate": "../data/Data_2020_P09/processed/intermediate/",
-        "final": "../data/Data_2020_P09/processed/final/"
-    },
     "sales_doc_type": {
         "immediate_revenue": [
             "L2",

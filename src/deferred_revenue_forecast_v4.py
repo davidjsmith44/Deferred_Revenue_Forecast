@@ -44,9 +44,15 @@ plt.style.use("ggplot")
 
 # Step 1: Processing Base Billings Data
 """ Data File Names and sheet names are contained in the config.json file """
+with open('base_config.json') as json_file:
+    config_dict1 = json.load(json_file)
 
-with open('config.json') as json_file:
-    config_dict = json.load(json_file)
+with open('period_config.json') as json_file:
+    config_dict2 = json.load(json_file)
+
+config_dict = {**config_dict1, **config_dict2}
+
+
 
 """ Loading up the input files """
 # Adobe Financial Calendar to get period start and end dates
@@ -82,11 +88,11 @@ df_no_POB, gb_a_no_config_2, df_d_no_rebill = classify_no_POB(config_dict, df_no
 
 # combine df_no_POB with df
 df = pd.concat([df, df_no_POB])
-df = df.groupby(["curr", "BU", "period"]).sum()
+df = df.groupby(["curr", "BU", "period"], as_index=False).sum()
 
 # combine the type_A no config
 df_A_no_config = pd.concat([df_a_no_config, gb_a_no_config_2])
-df_A_no_config = df_A_no_config.groupby(["curr", "BU", "period"]).sum()
+df_A_no_config = df_A_no_config.groupby(["curr", "BU", "period"], as_index=False).sum()
 
 # save the intermediate data to a file
 post_POB_dict = {'df_no_POB': df_no_POB,

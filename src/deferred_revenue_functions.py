@@ -1766,12 +1766,6 @@ def clean_curr_and_zeros(df, config_dict):
     list_keepers = keep_curr.index
     remove_these = vc[vc.values <= 20].index
     model_dict = {"curr_removed": list(vc[remove_these].index)}
-    delete_curr = list(remove_these)
-
-    if "TRY" not in model_dict["curr_removed"]:
-        model_dict["curr_removed"].append("TRY")
-        delete_curr.append("TRY")
-        list_keepers = list_keepers.drop("TRY")
 
     df = df[df["curr"].isin(list_keepers)]
 
@@ -1927,7 +1921,9 @@ def load_base_billings(config_dict):
     dfr = pd.concat([dfr, df_hyb_dfr])
 
     # Recognized Revenue
-    # Below we are grouping the rec dataframe by Currency, Business Unit and Period and cleaning up the data we do not need. Since the recognized revenue go directly to revenue, there is no contract that will renew and need to be modeled in the future.
+    # Below we are grouping the rec dataframe by Currency, Business Unit and Period and cleaning up the data we do
+    # not need. Since the recognized revenue go directly to revenue, there is no contract that will renew and need
+    # to be modeled in the future.
 
     # Grouping by currency, BU and period to save space
     gb_rec = rec.groupby(["curr", "BU", "period"], as_index=False).sum()
@@ -1945,6 +1941,9 @@ def load_base_billings(config_dict):
     # Deferred Type A Billings
     # split the type A billings based on their rebill frequency
     dfr_a = dfr[dfr["rev_req_type"] == "A"].copy()
+
+    total_USD = dfr_a['US_amount'].sum()
+    print("Total type A in USD: ", total_USD)
 
     A_df_dict = process_type_A(config_dict, dfr_a)
 
@@ -2297,7 +2296,6 @@ def configure_df_fcst(df_billings, df_cal, config_dict):
     print("This is the length of the vectors: ", len(v_BU_2_df))
 
     # Creating a list of the columns that we need to use in the df_billings dataframe (They contain document currency billings)
-
     list_all_columns = df_billings.columns
 
     list_keepers = []
