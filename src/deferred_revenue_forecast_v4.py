@@ -75,6 +75,7 @@ base_bill_dict = {'df': df,
                   'model_dict': model_dict,
                   'df_no_POB': df_no_POB,
                   'df_a_no_config': df_a_no_config,
+
                   'gb_d_no_rebill': gb_d_no_rebill}
 
 int_output_1_fname = config_dict['output_dir']['intermediate'] + "int_output_1.p"
@@ -310,42 +311,18 @@ df_FX_rates = interp_FX_fwds(df_FX_rates)
 #       - This will be a call to the df_FX_rates which will then recalculate the forward rates
 #       - Then the new forward rates will need to be fed back into the df_fcst dataframe to recalculate USD amounts
 
-
-new_columns = [
-    "fwd_01M",
-    "fwd_02M",
-    "fwd_03M",
-    "fwd_04M",
-    "fwd_05M",
-    "fwd_06M",
-    "fwd_07M",
-    "fwd_08M",
-    "fwd_09M",
-    "fwd_10M",
-    "fwd_11M",
-    "fwd_12M",
-]
-
-list_columns = [
-    "recognized_",
-    "service_",
-    "deferred_1M_",
-    "deferred_3M_",
-    "deferred_6M_",
-    "deferred_1Y_",
-    "deferred_2Y_",
-    "deferred_3Y_",
-]
+new_columns = config_dict["new_columns"]
+list_columns = config_dict["list_columns"]
 
 df_fcst = convert_fcst(df_fcst, df_FX_rates, list_columns, new_columns)
 
 # ###### Checking with a slice of the dataframe df_fcst
-us_slice = df_fcst[(df_fcst["BU"] == "Creative") & (df_fcst["curr"] == "JPY")]
-us_slice.head(10)
+#us_slice = df_fcst[(df_fcst["BU"] == "Creative") & (df_fcst["curr"] == "JPY")]
+#us_slice.head(10)
 
-dc = us_slice["deferred_1Y_DC"]
-us = us_slice["deferred_1Y_US"]
-print(dc / us)
+#dc = us_slice["deferred_1Y_DC"]
+#us = us_slice["deferred_1Y_US"]
+#print(dc / us)
 
 # ### Adding the bookings data to the df_fcst. columns
 
@@ -355,73 +332,13 @@ print(dc / us)
 
 df_fcst = merge_bookings_to_fcst(df_book_period, df_fcst)
 
-'''
 
-
-test_EUR = df_fcst[df_fcst["curr"] == "EUR"]
-
-# Loading up the deferred revenue waterfall
-
-# Loading the Deferred Revenue Forecast Sheet
-#
-# Steps to cleaning this notebook
-#
-# - clear out rows below the Grand Total inclusive of Magento/Marketo
-# - forward fill the External Reporting BU
-# - Move Marketo and Magento BU to Digital Experience
-# - Aggregate this by External reporting BU
-# - rename columns without " ' "
-# - create interpolated periods here for the amortization (assume amortization to revenue is linear within the periods of a quarter
-#
-
-
-# Saving the waterfall as Q2_waterfall
-# pickle.dump(df_waterfall, open("../data/processed/Q2_waterfall2.p", "wb"))
-
-# Building the Deferred Revenue Waterfall from the forecast dataframe (df_fcst) and the waterfall dataframe (df_waterfall)
-
-# NOTE: I am ignoring Deferred Type B (Service) billings - for now
-
-# ### Deferred Revenue Assumptions
-#
-# ##### Monthly Deferred Billings
-# These occur in the middle of the month. Half the billings go directly to revenue, the remainder amortize out of deferred the next month
-#
-# ##### Three Month Deferred Billings
-# These are assumed to occur at the end of the period.
-#
-#
-# ##### Annual Billings
-# - 1/12 of the current annual billings + 11 of the last annual billings + 1/12 of the year prior billings
-#
-
-
+# Creating the deferred revenue waterfall from our forecasted billings dataframe
 df_wf = build_deferred_waterfall(df_fcst)
 
 df_wf = df_wf.reset_index(drop=True)
 
 # The billings file is at the Enterprise BU level and the bookings forecast is at the BU level
-
-df_wf["BU"] = df_wf["BU"].str.replace("Creative", "Digital Media")
-df_wf["BU"] = df_wf["BU"].str.replace("Document Cloud", "Digital Media")
-df_wf["BU"] = df_wf["BU"].str.replace("DX Other", "Digital Experience")
-df_wf["BU"] = df_wf["BU"].str.replace("Experience Cloud", "Digital Experience")
-df_wf["BU"] = df_wf["BU"].str.replace("Print & Publishing", "Publishing")
-
-df_wf.head(40)
-
-# Testing one slice of the dataframe
-this_curr = "EUR"
-this_BU = "Digital Experience"
-this_slice = df_wf[(df_wf["BU"] == this_BU) & (df_wf["curr"] == this_curr)]
-
-# ### So I have the deferred waterfall by DC, period, BU.
-# # I need to groupby BU and Period
-
-df_wf_gb = df_wf.groupby(["BU", "period"]).sum()
-
-# ### Now we need to group the BU to match the waterfall BUs
-df_wf_gb.reset_index(inplace=True)
 
 # ### Change the BU to match the waterfall BUs
 #  - Creative to Digital Media
@@ -430,22 +347,34 @@ df_wf_gb.reset_index(inplace=True)
 #  - DX Other to Digital Experience
 #  - Experience Cloud to Digital Experience
 
-new_slice = df_wf_gb[df_wf_gb["BU"] == "Digital Experience"]
+dict_BU_map = config_dict['bookings_BU_mapping']
+for key, value in dict_BU_map.items():
+    df_wf["BU"] = df_wf["BU"].str.replace(key, value)
 
-# Altering the initial waterfall fields
+#df_wf["BU"] = df_wf["BU"].str.replace("Creative", "Digital Media")
+#df_wf["BU"] = df_wf["BU"].str.replace("Document Cloud", "Digital Media")
+#df_wf["BU"] = df_wf["BU"].str.replace("DX Other", "Digital Experience")
+#df_wf["BU"] = df_wf["BU"].str.replace("Experience Cloud", "Digital Experience")
+#df_wf["BU"] = df_wf["BU"].str.replace("Print & Publishing", "Publishing")
 
-df_waterfall.drop("Grand inclusive of Magento/Marketo", inplace=True)
+# The df_wf contains USD equivalent amounts but is still in DC groupings
+# # I need to groupby BU and Period
+
+df_wf = df_wf.groupby(["BU", "period"]).sum()
+
+# ### Now we need to group the BU to match the waterfall BUs
+df_wf.reset_index(inplace=True)
+
+# Loading up the initial accounting deferred revenue waterfall
+df_wf_init = load_and_clean_init_waterfall(config_dict)
 
 # ## Take the As Performed / Upon Acceptance column and place this into the df_wf_gb dataframe.
 # ## We will assume that this does not change over time
+df_as_performed = df_wf_init["As Performed / Upon Acceptance"].copy()
+df_wf_init = df_wf_init.drop("As Performed / Upon Acceptance", axis=1)
 
-df_as_performed = df_waterfall["As Performed / Upon Acceptance"].copy()
-
-df_waterfall = df_waterfall.drop("As Performed / Upon Acceptance", axis=1)
-
-# Changing the periods in the df_wf_gb to match the df_waterfall first
-
-old_cols = df_wf_gb.columns
+# Changing the periods in the df_wf_gb to match the df_wf_init first
+old_cols = df_wf.columns
 old_cols = old_cols[3:]
 
 new_columns = []
@@ -457,29 +386,29 @@ for i in range(12 * 3):
     new_columns.append(new_column)
 
 rename_dict = dict(zip(old_cols, new_columns))
-df_wf_gb = df_wf_gb.rename(columns=rename_dict)
+df_wf = df_wf.rename(columns=rename_dict)
 
-list_periods = df_wf_gb.period.unique()
+list_periods = df_wf.period.unique()
 
-list_BU = df_wf_gb.BU.unique()
+list_BU = df_wf.BU.unique()
 
-df_waterfall["period"] = "2020-07"
+df_wf_init["period"] = "2020-07"
 
-df_waterfall = df_waterfall.reset_index()
+df_wf_init = df_wf_init.reset_index()
 
-df_waterfall.rename(columns={"External Reporting BU": "BU"}, inplace=True)
+df_wf_init.rename(columns={"External Reporting BU": "BU"}, inplace=True)
 
 # ## ADDING ADDITONAL PERIODS HERE TO MERGE WITH df_wf
 
-df_waterfall["P28"] = 0
-df_waterfall["P29"] = 0
-df_waterfall["P30"] = 0
-df_waterfall["P31"] = 0
-df_waterfall["P32"] = 0
-df_waterfall["P33"] = 0
-df_waterfall["P34"] = 0
-df_waterfall["P35"] = 0
-df_waterfall["P36"] = 0
+df_wf_init["P28"] = 0
+df_wf_init["P29"] = 0
+df_wf_init["P30"] = 0
+df_wf_init["P31"] = 0
+df_wf_init["P32"] = 0
+df_wf_init["P33"] = 0
+df_wf_init["P34"] = 0
+df_wf_init["P35"] = 0
+df_wf_init["P36"] = 0
 
 # Planning on making a new dataframe with BU and period and merging them. Will create NAs everywhere else, but we will fillna
 list_periods = list_periods[1:]
@@ -497,49 +426,38 @@ len(to_df_BU)
 # Creating new dataframe to be merged
 df_to_merge = pd.DataFrame({"BU": to_df_BU, "period": to_df_period})
 
-df_waterfall = df_waterfall.merge(df_to_merge, on=["BU", "period"], how="outer")
+df_wf_init = df_wf_init.merge(df_to_merge, on=["BU", "period"], how="outer")
 
-df_waterfall.fillna(0, inplace=True)
+df_wf_init.fillna(0, inplace=True)
 
-df_waterfall.sort_values(by=["BU", "period"], inplace=True)
+df_wf_init.sort_values(by=["BU", "period"], inplace=True)
 
 # ## Now move the waterfall forward by BU
-df_waterfall = bring_initial_wf_forward(df_waterfall)
+df_wf_init = bring_initial_wf_forward(df_wf_init)
 
-df_waterfall = df_waterfall.set_index(["BU", "period"])
+df_wf_init = df_wf_init.set_index(["BU", "period"])
 
 df_wf_gb = df_wf_gb.set_index(["BU", "period"])
 
-df_all = df_waterfall.add(df_wf_gb, fill_value=0)
+df_all = df_wf_init.add(df_wf_gb, fill_value=0)
 
-df_waterfall = df_waterfall.sort_index()
+df_wf_init = df_wf_init.sort_index()
 df_all = df_all.sort_index()
 df_wf_gb = df_wf_gb.sort_index()
 
 # #### Sending this data over to excel as a check
 with pd.ExcelWriter("output.xlsx") as writer:
-    df_waterfall.to_excel(writer, sheet_name="initial_waterfall")
+    df_wf_init.to_excel(writer, sheet_name="initial_waterfall")
     df_wf_gb.to_excel(writer, sheet_name="billings_impact")
     df_all.to_excel(writer, sheet_name="combined")
     df_wf.to_excel(writer, sheet_name="early_wf")
 
 
-def create_for_curr_billings(df_all, file_name):
-    #'''
-
-'''
-    Need to recreate the report foreign currency billings excel forecast
-    :param df_all:
-    :param file_name:
-    :return:
-    '''
-
-'''
 # ## Add the as performed back into the waterfall forecast
 
 df_all["Total"] = df_all[df_all.columns[:-1]].sum(axis=1)
 
-df_waterfall["Total"] = df_waterfall[df_waterfall.columns[:]].sum(axis=1)
+df_wf_init["Total"] = df_wf_init[df_wf_init.columns[:]].sum(axis=1)
 
 df_wf_gb["Total"] = df_wf_gb[df_wf_gb.columns[1:]].sum(axis=1)
 
@@ -549,7 +467,7 @@ df_wf_gb["Total"] = df_wf_gb[df_wf_gb.columns[1:]].sum(axis=1)
 
 saved_dict["waterfall"] = df_all
 saved_dict["bill_waterfall"] = df_wf_gb
-saved_dict["initial_waterfall"] = df_waterfall
+saved_dict["initial_waterfall"] = df_wf_init
 
 pickle.dump(saved_dict, open("../data/processed/final_forecast_2.p", "wb"))
 
@@ -567,7 +485,7 @@ test_Q4["book_1Y_US"].sum()
 
 saved_dict["waterfall"] = df_all
 saved_dict["bill_waterfall"] = df_wf_gb
-saved_dict["initial_waterfall"] = df_waterfall
+saved_dict["initial_waterfall"] = df_wf_init
 
 # ##### Merging the df_fcst with the df_bililngs for easier charting?
 
@@ -587,7 +505,7 @@ input_df_dict = {
     "final": df,
     "billings": df_billings,
     "forecast": df_fcst,
-    "initial_waterfall": df_waterfall,
+    "initial_waterfall": df_wf_init,
     "bill_waterfall": df_wf_gb,
     "waterfall": df_all,
 }
