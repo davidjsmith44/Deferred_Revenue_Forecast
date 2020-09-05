@@ -1880,7 +1880,6 @@ def process_type_D(config_dict, df):
     gb_d_three_yrs = gb_d_three_yrs.groupby(["curr", "BU", "period"]).sum()
     gb_d_three_yrs.reset_index(inplace=True)
 
-
     gb_d_no_rebill = gb_d[~gb_d['rebill_rule'].isin(list_all_rebills)].copy()
 
     print('There are {} line items that are type D and have no rebill rule'.format(len(gb_d_no_rebill)))
@@ -2212,7 +2211,7 @@ def load_and_clean_init_waterfall(config_dict):
     df['External Reporting BU'] = df['External Reporting BU'].str.strip()
 
     # clearing out columns that we do not need
-    df = df.loc[:, ~df_test.columns.str.contains('^Unnamed')]
+    df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
     drop_columns = config_dict['deferred_workbook']['drop_columns']
     df = df.drop(columns=drop_columns)
 
@@ -2227,7 +2226,7 @@ def load_and_clean_init_waterfall(config_dict):
             item, list_BU_new)
 
 
-    # ##### Removing non-alphanumeric characters from column dates
+    # Removing non-alphanumeric characters from column dates
     changed_columns = df.columns.str.replace("'", "_")
     changed_columns = changed_columns.str.replace("+", "")
     df.columns = changed_columns
@@ -2272,12 +2271,16 @@ def load_and_clean_init_waterfall(config_dict):
 
     # OK My periods work fine. Now I can move on to saving this and finishing the defered waterfall
 
-    df_waterfall = df.loc[:, df.columns.str.contains("P")]
+    df = df.loc[:, df.columns.str.contains("P")]
 
     # ##### Now dropping P0 from the waterfall
-    df_waterfall = df_waterfall.drop("P00", axis=1)
+    df = df.drop("P00", axis=1)
 
-    return df_waterfall
+    # Changing the BUs to match billings and dropping the total row
+    df = df.rename(index=config_dict['waterfall_BU_mapping'])
+    df = df.drop(config_dict['waterfall_drop'])
+
+    return df
 
 def configure_df_fcst(df_billings, df_cal, config_dict):
     # This function sets up a dataframe to be used for the df_fcst

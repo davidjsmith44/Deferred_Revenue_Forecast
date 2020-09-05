@@ -44,7 +44,7 @@
         "final": "../data/Data_2020_P09/processed/final/"
     },
     "deferred_workbook": {
-        "filename": "Q2'20 Rev Acctg Mgmt Workbook (06-04-20).xlsx",
+        "filename": "Q3'20 Rev Acctg Mgmt Workbook (09-03-20).xlsx",
         "sheetname": "Deferred Revenue Forecast",
         "skiprows": 5,
         "keeper_rows": [
@@ -66,5 +66,10 @@
                             "DX Other": "Digital Experience",
                             "Experience Cloud": "Digital Experience",
                             "Print & Publishing" : "Publishing"
-    }
+    },
+    "waterfall_BU_mapping": {"Digital Experience Total": "Digital Experience",
+                            "Digital Media Total": "Digital Media",
+                            "Publishing Total": "Publishing"
+    },
+    "waterfall_drop": "Grand Total inclusive of Magento/Marketo"
 }

@@ -13,7 +13,7 @@ import pickle
 
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 # loading up my data from deferred revenue
-import_thing = pickle.load(open("../data/processed/final_forecast_2.p", "rb"))
+import_thing = pickle.load(open("../data/processed/final_forecast3.p", "rb"))
 df = import_thing["final"]
 df_wf = import_thing["waterfall"]
 list_currencies = df["curr"].unique()
@@ -397,7 +397,7 @@ def update_2Y_graph_DC(currency_value, BU_value):
 def update_1Y_graph_DC(currency_value, BU_value):
     dff = df[(df["BU"] == BU_value) & (df["curr"] == currency_value)]
     this_length = len(dff)
-    colors = ["darkgreen"] * len(dff)
+    colors = ["green"] * len(dff)
     change_list = np.arange(this_length - 24, this_length - 12)
     for item in change_list:
         colors[item] = "lightgreen"
@@ -567,7 +567,7 @@ def update_all_graphs_DC(currency_value, BU_value):
                 "x": dff["period"].to_list(),
                 "y": dff["deferred_1Y_DC"].to_list(),
                 "type": "bar",
-                "marker": {"color": "darkgreen"},
+                "marker": {"color": "green"},
                 "name": "1 year",
             },
             {
@@ -591,13 +591,13 @@ def update_all_graphs_DC(currency_value, BU_value):
                 "marker": {"color": "cornflowerblue"},
                 "name": "monthly",
             },
-            {
-                "x": dff["period"].to_list(),
-                "y": dff["deferred_B_DC"].to_list(),
-                "type": "bar",
-                "marker": {"color": "yellow"},
-                "name": "service",
-            },
+            #{
+            #    "x": dff["period"].to_list(),
+            #    "y": dff["deferred_B_DC"].to_list(),
+            #    "type": "bar",
+            #    "marker": {"color": "yellow"},
+            #    "name": "service",
+            #},
             {
                 "x": dff["period"].to_list(),
                 "y": dff["book_1Y_DC"].to_list(),
@@ -693,7 +693,7 @@ def update_1Y_graph_US(BU_value):
     dff = df[df["BU"].isin(BU_value)]
     dff = dff.groupby("period").sum()
     this_length = len(dff)
-    colors = ["darkgreen"] * len(dff)
+    colors = ["green"] * len(dff)
     change_list = np.arange(this_length - 24, this_length - 12)
     for item in change_list:
         colors[item] = "lightgreen"
@@ -845,7 +845,7 @@ def update_all_graphs_US(BU_value):
                 "x": dff.index.to_list(),
                 "y": dff["deferred_1Y_US"].to_list(),
                 "type": "bar",
-                "marker": {"color": "darkgreen"},
+                "marker": {"color": "green"},
                 "name": "1 year",
             },
             {
@@ -869,13 +869,13 @@ def update_all_graphs_US(BU_value):
                 "marker": {"color": "cornflowerblue"},
                 "name": "monthly",
             },
-            {
-                "x": dff.index.to_list(),
-                "y": dff["deferred_B_US"].to_list(),
-                "type": "bar",
-                "marker": {"color": "yellow"},
-                "name": "service",
-            },
+            #{
+            #    "x": dff.index.to_list(),
+            #    "y": dff["deferred_B_US"].to_list(),
+            #    "type": "bar",
+            #    "marker": {"color": "yellow"},
+            #    "name": "service",
+            #},
             {
                 "x": dff.index.to_list(),
                 "y": dff["book_1Y_US"].to_list(),

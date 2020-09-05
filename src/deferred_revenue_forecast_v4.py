@@ -50,9 +50,8 @@ with open('base_config.json') as json_file:
 with open('period_config.json') as json_file:
     config_dict2 = json.load(json_file)
 
+# Merging the two config dictionaries
 config_dict = {**config_dict1, **config_dict2}
-
-
 
 """ Loading up the input files """
 # Adobe Financial Calendar to get period start and end dates
@@ -75,7 +74,6 @@ base_bill_dict = {'df': df,
                   'model_dict': model_dict,
                   'df_no_POB': df_no_POB,
                   'df_a_no_config': df_a_no_config,
-
                   'gb_d_no_rebill': gb_d_no_rebill}
 
 int_output_1_fname = config_dict['output_dir']['intermediate'] + "int_output_1.p"
@@ -392,7 +390,7 @@ list_periods = df_wf.period.unique()
 
 list_BU = df_wf.BU.unique()
 
-df_wf_init["period"] = "2020-07"
+df_wf_init["period"] = "2020-10"
 
 df_wf_init = df_wf_init.reset_index()
 
@@ -410,7 +408,8 @@ df_wf_init["P34"] = 0
 df_wf_init["P35"] = 0
 df_wf_init["P36"] = 0
 
-# Planning on making a new dataframe with BU and period and merging them. Will create NAs everywhere else, but we will fillna
+# Planning on making a new dataframe with BU and period and merging them.
+# Will create NAs everywhere else, but we will fillna
 list_periods = list_periods[1:]
 
 to_df_BU = []
@@ -437,20 +436,20 @@ df_wf_init = bring_initial_wf_forward(df_wf_init)
 
 df_wf_init = df_wf_init.set_index(["BU", "period"])
 
-df_wf_gb = df_wf_gb.set_index(["BU", "period"])
+df_wf = df_wf.set_index(["BU", "period"])
 
-df_all = df_wf_init.add(df_wf_gb, fill_value=0)
+df_all = df_wf_init.add(df_wf, fill_value=0)
 
 df_wf_init = df_wf_init.sort_index()
 df_all = df_all.sort_index()
-df_wf_gb = df_wf_gb.sort_index()
+df_wf = df_wf.sort_index()
 
 # #### Sending this data over to excel as a check
 with pd.ExcelWriter("output.xlsx") as writer:
     df_wf_init.to_excel(writer, sheet_name="initial_waterfall")
-    df_wf_gb.to_excel(writer, sheet_name="billings_impact")
+    df_wf.to_excel(writer, sheet_name="billings_impact")
     df_all.to_excel(writer, sheet_name="combined")
-    df_wf.to_excel(writer, sheet_name="early_wf")
+    #df_wf.to_excel(writer, sheet_name="early_wf")
 
 
 # ## Add the as performed back into the waterfall forecast
@@ -459,32 +458,27 @@ df_all["Total"] = df_all[df_all.columns[:-1]].sum(axis=1)
 
 df_wf_init["Total"] = df_wf_init[df_wf_init.columns[:]].sum(axis=1)
 
-df_wf_gb["Total"] = df_wf_gb[df_wf_gb.columns[1:]].sum(axis=1)
+df_wf["Total"] = df_wf[df_wf.columns[1:]].sum(axis=1)
 
 # # Need to add these back to our model dictionary
 # ## At this point I dont recall what it was called and will need to change it
 
-
+saved_dict = {}
 saved_dict["waterfall"] = df_all
-saved_dict["bill_waterfall"] = df_wf_gb
+saved_dict["bill_waterfall"] = df_wf
 saved_dict["initial_waterfall"] = df_wf_init
 
 pickle.dump(saved_dict, open("../data/processed/final_forecast_2.p", "wb"))
 
 # ### Testing parts of the bookings/waterfall
-list_Q3 = ["2020-07", "2020-08", "2020-09"]
-this_BU = "Creative"
-test_Q3 = df[(df["BU"] == this_BU) & (df["period"].isin(list_Q3))]
-test_Q3["book_1Y_US"].sum()
+#list_Q4 = ["2020-10", "2020-11", "2020-12"]
+#this_BU = "Creative"
+#test_Q4 = df[(df["BU"] == this_BU) & (df["period"].isin(list_Q4))]
 
-list_Q4 = ["2020-10", "2020-11", "2020-12"]
-this_BU = "Creative"
-test_Q4 = df[(df["BU"] == this_BU) & (df["period"].isin(list_Q4))]
-
-test_Q4["book_1Y_US"].sum()
+#test_Q4["book_1Y_US"].sum()
 
 saved_dict["waterfall"] = df_all
-saved_dict["bill_waterfall"] = df_wf_gb
+saved_dict["bill_waterfall"] = df_wf
 saved_dict["initial_waterfall"] = df_wf_init
 
 # ##### Merging the df_fcst with the df_bililngs for easier charting?
@@ -506,9 +500,9 @@ input_df_dict = {
     "billings": df_billings,
     "forecast": df_fcst,
     "initial_waterfall": df_wf_init,
-    "bill_waterfall": df_wf_gb,
+    "bill_waterfall": df_wf,
     "waterfall": df_all,
 }
-pickle.dump(input_df_dict, open("../data/processed/final_forecast2.p", "wb"))
+pickle.dump(input_df_dict, open("../data/processed/final_forecast3.p", "wb"))
 
-'''
+

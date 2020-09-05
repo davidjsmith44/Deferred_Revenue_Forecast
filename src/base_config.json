@@ -21,7 +21,6 @@
     "list_columns": [
         "recognized_",
         "service_",
-        "deferred_B_",
         "deferred_1M_",
         "deferred_3M_",
         "deferred_6M_",
