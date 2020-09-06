@@ -61,12 +61,24 @@ def load_curr_map(config_dict):
 
 
 def add_billings_periods(df_billings):
+    '''
+     - the billings dataframe does not contain every period if there are no bookings within a period.
+     - the easiest way to create the forecast requires that we have all of the periods in each BU and currency pair (or at least 36 months worth so that we can incorporate the 3 year deferred bookings
+
+      The bookings foreacast also contains products such as 'LiveCycle' and 'other solutions' that we do not expect to recieve billings for going forward (there are no booking associated with this) so we need to remove them from the billings data
+      Explicit call to the add_billings_periods function is below
+
+    :param df_billings: The main billings dataframe
+    :return: df_billings: The main billings dataframe that now includes every period for every BU and currency
+
+    '''
     # clean up billings by removing LiveCycle and other solutions
     index_lc = df_billings[df_billings["BU"] == "LiveCycle"].index
     df_billings.drop(index_lc, inplace=True)
 
     index_other = df_billings[df_billings["BU"] == "Other Solutions"].index
     df_billings.drop(index_other, inplace=True)
+
     all_BU = df_billings["BU"].unique()
     all_curr = df_billings["curr"].unique()
 
@@ -820,11 +832,19 @@ def build_monthly_forecast(X, y):
     return monthly_model
 
 
-def load_bookings(bookings_filename, bookings_sheetname="source"):
+def load_bookings(config_dict):
+    '''
+    This function creates a dataframe that contains the bookings forecast that FP&A provides.
 
+    :param config_dict: This is the dictionary that contains all of the parameters for the deferred model
+    :return:
+    '''
+    filename_bookings = config_dict['path_to_data'] + config_dict['bookings']['filename']
+    boolings_sheetname = config_dict['bookings']['sheetname']
     df_bookings = pd.read_excel(bookings_filename, bookings_sheetname)
-    # ### Cleaning up the bookings data
-    # ##### NOTE: The bookings spreadsheet looks very different for Q2 versus prior quarters!
+
+    # Cleaning up the bookings data
+    # NOTE: The bookings spreadsheet looks very different for Q2 versus prior quarters!
     #  - remove odd strings such as '(GP)' from BU, (IS) from Internal Segment, etc
     #  - dropping columns we do not need
     #  - renaming columns to better match our data naming convention
@@ -883,31 +903,29 @@ def load_bookings(bookings_filename, bookings_sheetname="source"):
 
 
 def clean_bookings(df_bookings):
-    # ### There are new BUs now!
+    '''
+    The pivot table Karen is using only look at 4 EBUs
+    - Creative
+      - Document Cloud
+      - Digital Experience
+      - Print & Publishing
 
-    # The pivot table Karen is using only look at 4 EBUs
-    #  - Creative
-    #  - Document Cloud
-    #  - Digital Experience
-    #  - Print & Publishing
-    #
-    #  The following bookings types are used
-    #  - ASV
-    #  - Total Subscription Attrition
-    #  - Consulting (I do not believe this hits deferred revenue) so we drop this
-    #
-    #  -NOTE: As per Karen on 6/7/20, we need to add 'Premiere Support' to the ASV totals to get ours to match hers
-    #
-    #
+      The following bookings types are used
+      - ASV
+      - Total Subscription Attrition
+      - Consulting (I do not believe this hits deferred revenue) so we drop this
+
+      -NOTE: As per Karen on 6/7/20, we need to add 'Premiere Support' to the ASV totals to get ours to match hers
+
+
+    :param df_bookings:
+    :return:
+    '''
+
     # #### This is not being done here, we have way too many different items in the 'bookings_type' field
 
     # ###### The cell below shows samples of what is in the data. Removing one of the parenthesis will execute the code. (One at a time)
 
-    df_bookings["BU"].value_counts()
-    # df_bookings['segment'].value_counts()
-    # df_bookings['product'].value_counts()
-    # df_bookings['country'].value_counts()
-    # df_bookings['booking_type'].value_counts();
 
     change_list = [
         "Data & Insights",
@@ -951,17 +969,12 @@ def clean_bookings(df_bookings):
     # - Total Subscription Attrition
     # - Premier Support (This is a new requirement for Q2 2020)
     #
-    # ###### Note: These get summed by their booking amont later in the program, so we don't need to do that here
-
+    # ###### Note: These get summed by their booking amount later in the program, so we don't need to do that here
     df_bookings = df_bookings[
         df_bookings["booking_type"].isin(
             ["ASV", "Total Subscription Attrition", "Premier Support"]
         )
     ]
-
-    df_bookings.booking_type.value_counts()
-
-    df_bookings.tail(10)
 
     return df_bookings
 

@@ -134,10 +134,9 @@ df_billings = df_billings.sort_values(
 )
 
 # Bookings Forecast
-filename_bookings = config_dict['path_to_data'] + config_dict['bookings']['filename']
-df_bookings = load_bookings(filename_bookings, config_dict['bookings']['sheetname'])
+df_bookings = load_bookings(config_dict)
 
-# ### Merging the bookings country data to a currency using the currency map dataframe (df_curr_map)
+# Merging the bookings country data to a currency using the currency map dataframe (df_curr_map)
 df_bookings = merge_bookings_with_curr(df_bookings, df_curr_map)
 
 # TODO: Check on bookings by BU and Quarter to see if it Matches Karen's file
