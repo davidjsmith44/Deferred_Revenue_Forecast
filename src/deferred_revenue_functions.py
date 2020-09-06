@@ -9,29 +9,55 @@ from sklearn.linear_model import LinearRegression
 plt.style.use("ggplot")
 
 def load_FX_data(config_dict):
-    filename_FX = config_dict['path_to_data'] + config_dict['FX_rates']['filename']
-    df_FX_rates = pd.read_excel(filename_FX, sheet_name=config_dict['FX_rates']['sheetname'])
-    # some of the currencies do not contain forwards, so just filling across (as if no points)
-    df_FX_rates = df_FX_rates.fillna(method='ffill', axis=1)
-    df_FX_rates["VOL_3M"] = df_FX_rates["VOL_3M"] / 100
-    df_FX_rates["VOL_6M"] = df_FX_rates["VOL_6M"] / 100
-    df_FX_rates["VOL_9M"] = df_FX_rates["VOL_9M"] / 100
-    df_FX_rates["VOL_1Y"] = df_FX_rates["VOL_1Y"] / 100
+    '''
+    This function takes the config dictionary and creates a dataframe from the FX_data.xlsx file.
+    This dataframe inlcudes all of the currency exchange rates, their forward rates and vols
 
-    df_FX_rates.head(5)
-    return df_FX_rates
+    :param config_dict: the main configuration dictionary for the deferred revenue model
+    :return: df: The final dataframe contains the following fields
+        DC - the 3 digit ticker for each document currency
+        Ticker - the 6 digit currency ticker for the exchange rate to USD.
+        Spot - the spot exchagne rate
+        FWD_3M, FWD_6M, FWD_9M, FWD_1Y - the forward rates for the exchange rates
+        VOL_3M, VOL_6M, VOL_9M, VOL_12M - the implied volatility for the exchange rates
+
+    '''
+    filename_FX = config_dict['path_to_data'] + config_dict['FX_rates']['filename']
+    df = pd.read_excel(filename_FX, sheet_name=config_dict['FX_rates']['sheetname'])
+
+    # some of the currencies do not contain forwards, so just filling across (as if no points)
+    df = df.fillna(method='ffill', axis=1)
+
+    # adjusting the vols to be in percentages
+    df["VOL_3M"] = df["VOL_3M"] / 100
+    df["VOL_6M"] = df["VOL_6M"] / 100
+    df["VOL_9M"] = df["VOL_9M"] / 100
+    df["VOL_1Y"] = df["VOL_1Y"] / 100
+
+    return df
 
 
 def load_curr_map(config_dict):
+    '''
+    load_curr_map creates a dataframe from the currency_map.xlsx file. This dataframe contains a list of
+    countries and the currency that contains the largest percentage of billings in that country. This is later
+    used to take the bookings forecast, which has country level information and mapping this to a document currency.
+    :param config_dict: The main dictionary for the deferred revenue program
+    :return: df: A dataframe containing the following columns
+                - 'Country':
+                - 'Currency':
+    '''
     filename_curr_map = config_dict['path_to_data'] + config_dict['curr_map']['filename']
     curr_map_sheetname = config_dict['curr_map']['sheetname']
-    df_curr_map = pd.read_excel(filename_curr_map, sheet_name=curr_map_sheetname)
-    df_curr_map["Country"] = df_curr_map["Country"].str.replace(
+    df = pd.read_excel(filename_curr_map, sheet_name=curr_map_sheetname)
+
+    # need to replace part of the strings in country that are in this report
+    df["Country"] = df["Country"].str.replace(
         "\(MA\)", "", case=False
     )
-    df_curr_map["Country"] = df_curr_map["Country"].str.strip()
+    df["Country"] = df["Country"].str.strip()
 
-    return df_curr_map
+    return df
 
 
 def add_billings_periods(df_billings):
@@ -88,36 +114,38 @@ def add_billings_periods(df_billings):
 
 
 def load_ADBE_cal(config_dict):
-    # loading Adobe financial calendar and calculating period weeks
+    '''
+    This function opens the Adobe financial calendar and creates a dataframe containing the information
+    in the Adobe financial calendar that is needed for the deferred revenue model.
+    The dataframe creates returns has two columns
+        - "Period_Weeks: containing the number of weeks within a fiscal period
+        - "period_match", which contains the period date in YYYY-MM format
+
+    :param config_dict: the main configuration dictionary for the deferred revenue model
+    :return: df: A dataframe containing all of the details of the financial calendar
+    '''
+
     ADBE_cal_filename  = config_dict['ADBE_cal']['direct_filename']
     ADBE_cal_sheetname = config_dict['ADBE_cal']['sheetname']
 
-    df_cal = pd.read_excel(ADBE_cal_filename, ADBE_cal_sheetname)
-    df_cal["Period_Weeks"] = (df_cal["Per_End"] - df_cal["Per_Start"]) / np.timedelta64(
+    df = pd.read_excel(ADBE_cal_filename, ADBE_cal_sheetname)
+    df["Period_Weeks"] = (df["Per_End"] - df["Per_Start"]) / np.timedelta64(
         1, "W"
     )
-    df_cal["Period_Weeks"] = df_cal["Period_Weeks"].astype(int)
-    df_cal["Period_Weeks"] = df_cal["Period_Weeks"] + 1
-
-    # df_cal.head(5)
-    # df_cal.sample(5)
-    df_cal.tail(5)
+    df["Period_Weeks"] = df["Period_Weeks"].astype(int)
+    df["Period_Weeks"] = df["Period_Weeks"] + 1
 
     # Creating a column in df_cal with year  '-' the last two digits of the per_ticker to match with the billings dataframe
-    df_cal["p2digit"] = df_cal["Period"].astype(str)
-    df_cal["p2digit"] = df_cal["p2digit"].str.zfill(2)
+    df["p2digit"] = df["Period"].astype(str)
+    df["p2digit"] = df["p2digit"].str.zfill(2)
 
-    df_cal["period_match"] = (
-            df_cal["Year"].astype(str) + "-" + df_cal["p2digit"].astype(str)
+    df["period_match"] = (
+            df["Year"].astype(str) + "-" + df["p2digit"].astype(str)
     )
 
-    df_cal.drop(["p2digit"], axis=1, inplace=True)
+    df.drop(["p2digit"], axis=1, inplace=True)
 
-    # df_cal.head(10)
-    df_cal.sample(10)
-    # df_cal.tail(10)
-
-    df_cal.drop(
+    df.drop(
         [
             "Year",
             "Quarter",
@@ -133,7 +161,7 @@ def load_ADBE_cal(config_dict):
         inplace=True,
     )
 
-    return df_cal
+    return df
 
 
 def convert_fcst(df_fcst, df_FX_rates, list_columns, new_columns):
@@ -303,6 +331,38 @@ def sum_USD_amt(list_df, list_columns):
 
 
 def merge_all_dataframes(list_df, list_columns):
+    '''
+    This function takes a list of dataframes and a list of column names and creates a single dataframe
+    containing all of the dataframes with column names contained in list_columns.
+
+    It is used to take the grouped dataframes in list_df that are grouped by their rebill frequency
+    and map them to a new column that contains their rebill requency in the column name.
+
+    :param list_df: The list of dataframes created in the load_base_billings file
+    :param list_columns: The column names representing the type of billing and frequency of rebilling
+    :return: df: This is the main dataframe for the billings we have classified. The dataframe contains the following columns
+                'curr': The three digit currency for the row
+                'BU': The Enterprise BU for the billing
+                'period': The period of the billing in YYYY-PP format
+                'recognized_DC': The recognized document currency billings that go immediately to revenue
+                'recognized_US': The USD equivalent of these immediate revenue billings
+                'service_DC': The document currency billings for service billings that get placed into deferred and are
+                            moved to revenue as service is performed
+                'service_US': The USD equivalent of the service billings
+                'deferred_1M_DC': document currency deferred billings that will renew every month
+                'deferred_1M_US': USD equivalent of deferred 1M billings
+                'deferred_3M_DC': document currency deferred billings that will renew every 3 months
+                'deferred_3M_US': USD equivalent of deferred 3M billings
+                'deferred_6M_DC':document currency deferred billings that will renew every 6 months
+                'deferred_6M_US': USD equivalent of deferred 6M billings
+                'deferred_1Y_DC': document currency deferred billings that will renew every year
+                'deferred_1Y_US': USD equivalent of deferred annual billings
+                'deferred_2Y_DC': document currency deferred billings that will renew every 2 years
+                'deferred_2Y_US': USD equivalent of deferred 2Y billings
+                'deferred_3Y_DC': document currency deferred billings that will renew every 3 year
+                'deferred_3Y_US': USD equivalent of deferred 3Y billings
+
+    '''
     for i, df in enumerate(list_df):
         # print('This is i:', i)
         # print('referencing the column: ', list_columns[i])
@@ -324,6 +384,14 @@ def merge_all_dataframes(list_df, list_columns):
 
 
 def merge_new_dataframe(old_df, new_df, new_column):
+    '''
+    This program is called in the 'merge_all_dataframes' function and does the actual act of merging the dataframes
+    :param old_df: The initial dataframe
+    :param new_df: The new dataframe to be merged
+    :param new_column: The name of the new column to be added to the dataframe representing the type of
+                        deferred billing and the frequency of the billing
+    :return: the merged dataframe
+    '''
     df_merged = pd.merge(
         old_df,
         new_df,
@@ -350,6 +418,42 @@ def merge_new_dataframe(old_df, new_df, new_column):
 
 
 def clean_df_columns(df):
+    '''
+    This function cleans up the dataframe columns that get created when we merge all of the dataframes
+    in the load_base_billings file. The dataframe columns contain billings from both type A and type D
+    billings that are the same rebillings frequency. We don;t care if they are type A or type D at this
+    point in the program because this designation was only helpful to determine the frequency of the billings.
+    So here we merge these columns to be together.
+
+    The final columns contain information about (up to) 3 categories.
+        1. Type of billings: servivces, recognized, deferred
+        2. Frequency of rebillings: 1M, 3M, 6M, 1Y, 2Y, 3Y (for deferred billings)
+        3. Document currency or USD: DC or USD
+
+    :param df: The initial merged dataframe created in merge_all_dataframes
+    :return: df: a dataframe with the following columns
+                'curr': The three digit currency for the row
+                'BU': The Enterprise BU for the billing
+                'period': The period of the billing in YYYY-PP format
+                'recognized_DC': The recognized document currency billings that go immediately to revenue
+                'recognized_US': The USD equivalent of these immediate revenue billings
+                'service_DC': The document currency billings for service billings that get placed into deferred and are
+                            moved to revenue as service is performed
+                'service_US': The USD equivalent of the service billings
+                'deferred_1M_DC': document currency deferred billings that will renew every month
+                'deferred_1M_US': USD equivalent of deferred 1M billings
+                'deferred_3M_DC': document currency deferred billings that will renew every 3 months
+                'deferred_3M_US': USD equivalent of deferred 3M billings
+                'deferred_6M_DC':document currency deferred billings that will renew every 6 months
+                'deferred_6M_US': USD equivalent of deferred 6M billings
+                'deferred_1Y_DC': document currency deferred billings that will renew every year
+                'deferred_1Y_US': USD equivalent of deferred annual billings
+                'deferred_2Y_DC': document currency deferred billings that will renew every 2 years
+                'deferred_2Y_US': USD equivalent of deferred 2Y billings
+                'deferred_3Y_DC': document currency deferred billings that will renew every 3 year
+                'deferred_3Y_US': USD equivalent of deferred 3Y billings
+
+    '''
     # clean up NaNs before adding
     df = df.fillna(value=0)
 
@@ -428,16 +532,26 @@ def remove_bad_currencies(df, model_dict):
 
 
 def load_FX_fwds(config_dict):
+    '''
+    load_FX_fwds takes the config dictionary and returns a dataframe that contains the foreign exchange
+    forward rates that FP&A uses in their financial plan. These forward rates are later used to determine
+    document currency billings from the bookings forecast, which is USD based.
+
+    :param config_dict: the main configuration dictionary for the deferred revenue program
+    :return: df: A dataframe consisting of
+                - 'curr': The 3 digit ticker for a currency
+                - 'forward': The forward rate used by FP&A for bookings forecasts
+    '''
     filename_FX_fwds = config_dict['path_to_data'] + config_dict['FX_forwards']['filename']
     FX_fwds_sheetname  = config_dict['FX_forwards']['sheetname']
-    df_FX_fwds = pd.read_excel(
+    df = pd.read_excel(
         filename_FX_fwds, sheet_name=FX_fwds_sheetname, skiprows=1, usecols="C,G",
     )
 
-    df_FX_fwds.rename(
+    df.rename(
         index=str, columns={"Unnamed: 2": "curr", "FWD REF": "forward"}, inplace=True
     )
-    return df_FX_fwds
+    return df
 
 
 def find_unique_curr_and_BU(df_billings):
@@ -1672,7 +1786,7 @@ def split_hybrid_dataframe(df_hyb, config_dict):
     The orders with a 'Sales Document Type' of "BNDL" are a combination of both the recognized revenue
     and deferred revenue. The historical percentage of "BNDL" orders thar are deferred is about 87%.
 
-    This function takes the "BNDL" sales types (in a dataframe called df_hyb for hybrid) and returns
+    This function takes the "BNDL" sales types (in a dataframe called df_hyb for hybrid) and
     splits this dataframe into two separate dataframes, one that is immediate revenue and one that is
     deferred.
 
@@ -1900,14 +2014,77 @@ def process_type_D(config_dict, df):
     return return_dict
 
 def load_base_billings(config_dict):
-    """ This loads up the base billings data and creates a dataframe
+    """
+    This loads up the base billings data and creates a the main billing dataframe (df) a dataframe of billings
+    that need to be further classified because they are missing a POB_type field (df_no_POB), a dataframe
+    that contains type A deferred billings that cannot be classified (df_type_a_no_config) and a dataframe
+    that contains any deferred type D billings that have no rebill rule and need to be reclassified.
 
+    :param config_dict: This is the json config file.
+    :return:
+        df: This is the main dataframe for the billings we have classified. The dataframe contains the following columns
+                'curr': The three digit currency for the row
+                'BU': The Enterprise BU for the billing
+                'period': The period of the billing in YYYY-PP format
+                'recognized_DC': The recognized document currency billings that go immediately to revenue
+                'recognized_US': The USD equivalent of these immediate revenue billings
+                'service_DC': The document currency billings for service billings that get placed into deferred and are
+                            moved to revenue as service is performed
+                'service_US': The USD equivalent of the service billings
+                'deferred_1M_DC': document currency deferred billings that will renew every month
+                'deferred_1M_US': USD equivalent of deferred 1M billings
+                'deferred_3M_DC': document currency deferred billings that will renew every 3 months
+                'deferred_3M_US': USD equivalent of deferred 3M billings
+                'deferred_6M_DC':document currency deferred billings that will renew every 6 months
+                'deferred_6M_US': USD equivalent of deferred 6M billings
+                'deferred_1Y_DC': document currency deferred billings that will renew every year
+                'deferred_1Y_US': USD equivalent of deferred annual billings
+                'deferred_2Y_DC': document currency deferred billings that will renew every 2 years
+                'deferred_2Y_US': USD equivalent of deferred 2Y billings
+                'deferred_3Y_DC': document currency deferred billings that will renew every 3 year
+                'deferred_3Y_US': USD equivalent of deferred 3Y billings
+
+        model_dict: This dictionary contains the list of currencies that we exclude from the program
+
+        df_no_POB: This dataframe contains the billings data that had no POB type classification and were not able to be
+                classified in this function (because this field was missing). The format of this file is different than
+                the df dataframe because the data is still in the excel format from the 'all_billings_inputs.xlsx' file
+                that gets pulled from tableau (actually the 'base_billings' tab in that workbook).
+                The df_no_POB dataframe contains the following fields:
+                    'curr': The 3character currency ticker for this row of billings
+                    'BU': The enterprise document currency
+                    'period': The periods of the billing in YYYY-PP format
+                    'POB_type': The POB_type classification (in the df_no_POB file, these are all blank)
+                    'config': This is the type A configuration {'MTHLY', '1Y', '2Y', '3Y', 'OUCONS', 'ONORE', BLANK}
+                    'rev_req_type': This is the revenue recognition classification (pre 606) {'A', 'B', 'D', 'F', BLANK}
+                    'rebill_rule': This is the field that classifies the rev_req_type == D billings. The list of possible
+                                rebill_rules is contained in the base_config.json file
+                    'sales_doc': For some of these billings that are missing important fields, we use the sales_doc type
+                                to classify their type (deferred, service or immediate) and rebillings frequency
+                    'sales_type': This is an old field that was used before POB_type became implemented with 606.
+                                Pre 606, this was used to classify billings as being deferred, service or immediate rev.
+                                The field is kept here to attempt to classify billings that are missing data fields
+                    'sub_term': The sub term is the length of the subscription (mostly for type D billings). This field
+                                is used in conjunction with the rebill_rule to determine billings frequency
+                    'DC_amount': The document currency amount of the billing
+                    'US_amount': The USD eqiuvalent of the document currency billing
+
+        gb_a_no_config: This dataframe contains deferred billings (so they have a POB_type) that have a
+                        revenue recognition type of A, but a product config that cannot be classified into a
+                        rebilling frequency. The type A product configs {"MTHLY", '1Y', '2Y', '3Y'} can be classified.
+                        The other product configs, including blanks, cannot be classified. The value of these billings
+                        is then taken from the 'type_A_no_config' tab in the 'all_billings_inputs.xlsx' file.
+                        The columns in this dataframe are the same as the df_no_POB dataframe.
+
+        gb_d_no_rebill: This dataframe contains the billings that have a POB type that is deferred, have a revenue
+                        recognition type of D and have no rebill_rule field. NOTE: This dataframe is usually empty, but
+                        is being returned here to check.
     """
     filename_billings = config_dict['path_to_data'] + config_dict['billings']['filename']
     sheetname_billings = config_dict['billings']['base_sheetname']
     df = pd.read_excel(filename_billings, sheet_name=sheetname_billings)
 
-    ###### Changing the column names early since they are inconsistent across other reports
+    # Changing column names
     df.rename(
         index=str,
         columns={
@@ -1927,11 +2104,11 @@ def load_base_billings(config_dict):
         },
         inplace=True,
     )
-    # getting rid of duration here
+    # getting rid of duration here (this field is used to classify service billings)
     df.drop(labels=["duration"], axis=1, inplace=True)
     df, model_dict = clean_curr_and_zeros(df, config_dict)
 
-    # POB Type Classifier
+    # POB Type Classification
     list_IR = config_dict['POB_type_classifier']['list_IR']
     list_service = config_dict['POB_type_classifier']['list_service']
     list_deferred = config_dict['POB_type_classifier']['list_deferred']
@@ -1944,6 +2121,8 @@ def load_base_billings(config_dict):
     df_hyb = df[df["POB_type"].isin(list_hybrid)].copy()
     df_no_POB = df[~df["POB_type"].isin(list_all)].copy()
 
+    # POB_type 'BNDL' is a mix of recognized revenue and deferred revenue. The function below
+    # splits these billings into these two parts.
     df_hyb_IR, df_hyb_dfr = split_hybrid_dataframe(df_hyb, config_dict)
 
     # concatenate df_hyb_IR with rec and df_hyb_drf with df_hyb_drf
@@ -1968,8 +2147,10 @@ def load_base_billings(config_dict):
     gb_svc = svc.groupby(["curr", "BU", "period"], as_index=False).sum()
     gb_svc.drop(labels=["sub_term"], axis=1, inplace=True)
 
-    # Deferred Type A Billings
-    # split the type A billings based on their rebill frequency
+    # Deferred Billings
+    # Splitting the deferred billings based on their revenue recognition type and processing the billings.
+    #
+    # Type A Deferred
     dfr_a = dfr[dfr["rev_req_type"] == "A"].copy()
 
     total_USD = dfr_a['US_amount'].sum()
@@ -1983,7 +2164,8 @@ def load_base_billings(config_dict):
     gb_a_3Y = A_df_dict['gb_a_3Y']
     gb_a_no_config = A_df_dict['gb_a_no_config']
 
-    # Deferred Type D Billings
+    #
+    # Type D Billings
     dfr_d = dfr[dfr["rev_req_type"] == "D"].copy()
 
     return_dict = process_type_D(config_dict, dfr_d)
@@ -1996,25 +2178,8 @@ def load_base_billings(config_dict):
     gb_d_three_yrs = return_dict['three_years']
     gb_d_no_rebill = return_dict['no_rebill']
 
-    # ## Building a single dataframe that incorporates all of this data
-    #
-    # - We will have the following descriptive fields
-    #    - Invoicing Fiscal Year-Period
-    #    - Document Currency Billing Amount
-    #    - USD Billing Amount
-    #    - Enterprise BU
-    #
-    # - We will have the following fields based on rebilling rule
-    #    - Recognized
-    #    - Service
-    #    - Monthly
-    #    - Quarterly
-    #    - Annual
-    #    - Two Years
-    #    - Three Years
+    # Building a single dataframe that incorporates all of this data
 
-    # ###### Below uses functions to merge a list of dataframes and move billings amounts to the correct category based on rebill frequency and type
-    #
 
     list_df = [
         gb_rec,
