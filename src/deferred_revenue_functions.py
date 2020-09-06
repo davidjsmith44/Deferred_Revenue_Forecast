@@ -1153,6 +1153,62 @@ def bring_wf_forward(df):
 
 
 def add_type_A_billings(config_dict, df, model_dict):
+    '''
+    Type A billings that do not have a valid product_config type cannot be processed using the base_billings query
+    from tableau. To classify these billings, we need to look at deferred revenue additions (versus billings) that are
+    type_A and have an invalid product_config type. The 'all_billings_inputs.xlsx' file contains a tab
+    'type_A_no_config' that contains the following columns for these billings
+        Document Currency - the document currency of the billings
+        Enterprise BU Desc - BU
+        Invoice Fiscal Year Period Desc - the period of the billings
+        Product Mgmt BU - not used (product)
+        Rev REc Contract End Date Hdr - one of the 2 end date fields
+        Rev REc Contract End Date Item- one of the 2 end date fields
+        Rev REc Contract Start Date Hdr - one of the 2 start date fields
+        Rev REc Contract Start Date Item- one of the 2 start date fields
+        Completed Sales (DC) - the document currency billings amount
+        Completed Sales - the USD equivalent of the document currency billing
+
+    There are two fields that may contain the start date of the contract and 2 dates that may contain the end date
+    of the contract. (No idea why.) We need to take the columns for these fields that contains dates and
+    then determine the number of months between the start and end date of each contract. This amount is then
+    mapped into {"1M", "3M", "6M", "1Y", "2Y", "3Y"} based on which billing frequency is closest to the actual
+    number of months between the contract start and end date.
+
+    Once the contract date is determined, we can not assume that the contract will renew at the end of the contract term
+    (this is primarilly becauase we have net new bookings from FP&A)
+
+    :param config_dict: This is the main configuration dictionary for the deferred revenue program
+
+    :param df: This is the billings dataframe for billings that have already been classified. It contains the same
+                fields as the df dataframe that gets returned.
+
+    :param model_dict: This dictionary contains curreneies that have been banned from the program to make sure that
+                        they remain banned from the type_A_no_config billings we are processing here.
+    :return: df: A dataframe containing all billings that have been classified before and during this function.
+                The dataframe contains the following columns
+                'curr': The three digit currency for the row
+                'BU': The Enterprise BU for the billing
+                'period': The period of the billing in YYYY-PP format
+                'recognized_DC': The recognized document currency billings that go immediately to revenue
+                'recognized_US': The USD equivalent of these immediate revenue billings
+                'service_DC': The document currency billings for service billings that get placed into deferred and are
+                            moved to revenue as service is performed
+                'service_US': The USD equivalent of the service billings
+                'deferred_1M_DC': document currency deferred billings that will renew every month
+                'deferred_1M_US': USD equivalent of deferred 1M billings
+                'deferred_3M_DC': document currency deferred billings that will renew every 3 months
+                'deferred_3M_US': USD equivalent of deferred 3M billings
+                'deferred_6M_DC':document currency deferred billings that will renew every 6 months
+                'deferred_6M_US': USD equivalent of deferred 6M billings
+                'deferred_1Y_DC': document currency deferred billings that will renew every year
+                'deferred_1Y_US': USD equivalent of deferred annual billings
+                'deferred_2Y_DC': document currency deferred billings that will renew every 2 years
+                'deferred_2Y_US': USD equivalent of deferred 2Y billings
+                'deferred_3Y_DC': document currency deferred billings that will renew every 3 year
+                'deferred_3Y_US': USD equivalent of deferred 3Y billings
+
+    '''
     billings_filename = config_dict['path_to_data'] + config_dict['billings']['filename']
     type_A_sheetname = config_dict['billings']['type_A_sheetname']
 
@@ -1165,9 +1221,15 @@ def add_type_A_billings(config_dict, df, model_dict):
     return df_billings
 
 
-def load_and_clean_type_A(
-        billings_filename, model_dict, type_A_sheetname="type_A_no_config"
-):
+def load_and_clean_type_A(billings_filename, model_dict, type_A_sheetname="type_A_no_config"):
+    '''
+
+    :param billings_filename: the filename for the base_billings file
+    :param model_dict: The main model dictionary that contains banned currencies
+    :param type_A_sheetname: The sheetname that contains the type_A_no_config billings
+    :return: temp_flat_DC: a dataframe containing the document currency billings mapped to their rebillings frequency
+    :return: temp_flat_US: a dataframe containing the US equivalent billings mapped to their rebillings frequency
+    '''
     df_A = pd.read_excel(billings_filename, sheet_name=type_A_sheetname)
 
     df_A.rename(
@@ -1186,10 +1248,7 @@ def load_and_clean_type_A(
         inplace=True,
     )
 
-    df_A.head(20)
-
-    # ##### Removing banned currencies
-    # model_dict
+    # Removing banned currencie
     df_A = remove_bad_currencies(df_A, model_dict)
 
     # ###### Handling the duplicate dates by taking a max and creating a start_date and end_date fields in pandas datetime format
@@ -1215,25 +1274,18 @@ def load_and_clean_type_A(
         inplace=True,
     )
 
-    # ###### Creating a month_interval field that calculates the difference between the start_date and end_date in months. We will map this number of months into a rebilling frequency (this number of months determines when the contract expires and the deferred revenue model assumes that all attribution is accounted for in our net new billings estimates provided by FP&A)
+    # Creating a month_interval field that calculates the difference between the start_date and end_date in months. We will map this number of months into a rebilling frequency (this number of months determines when the contract expires and the deferred revenue model assumes that all attribution is accounted for in our net new billings estimates provided by FP&A)
     df_A["month_interval"] = df_A["end_date"] - df_A["start_date"]
     df_A["months"] = (df_A["month_interval"] / np.timedelta64(1, "M")).round(0)
 
     df_A.head(10)
 
-    # ##### Mapping the number of months into our common rebill frequencies (monthly, quarterly, semi-annual, annual, 2 years and 3 years)
+    # Mapping the number of months into our common rebill frequencies (monthly, quarterly, semi-annual, annual, 2 years and 3 years)
     list_rebills = [1, 3, 6, 12, 24, 36]
     temp_rebill = np.zeros_like(df_A["months"])
     for i in range(len(df_A)):
         temp_rebill[i] = min(list_rebills, key=lambda x: abs(x - df_A["months"][i]))
     df_A["rebill_months"] = temp_rebill
-
-    fig, axs = plt.subplots(1, 1, figsize=(14, 6))
-    axs.scatter(df_A["months"], df_A["rebill_months"])
-    axs.set_ylabel("Rebill Months")
-    axs.set_xlabel("Number of months between contract start and end dates")
-    axs.set_title("Type A billings with no config type rebilling mapping")
-    print_text = "No"
 
     # Dropping the columns we no longer need
     df_A.drop(
@@ -1282,23 +1334,43 @@ def load_and_clean_type_A(
 
     temp_flat_DC.head(20)
 
-    # Quick check that we have not created duplicate column entries (for example two entries for a period with same BU and currency)
-    # df_test_dup = df.copy()
-    # orig_len = len(df_test_dup)
-    # print("Original Length of the dataframe before duplicate test: ", orig_len)
-
-    # df_test_dup = df_test_dup.drop_duplicates(subset=["curr", "BU", "period"])
-    # print(
-    #    "New length of database after duplicates have been removed: ", len(df_test_dup)
-    # )
-
-    # if orig_len != len(df_test_dup):
-    #    print("We had duplicates in the dataframe! Look into why")
-
     return temp_flat_DC, temp_flat_US
 
 
 def merge_billings_with_A(temp_flat_DC, temp_flat_US, df):
+    '''
+    Merging the billings dataframe with the temp_flat_DC and temp_flat_US dataframes and filling in any blanks with zero
+
+    :param temp_flat_DC: a dataframe containing the DC billings of type_A billings with no valid config type
+
+    :param temp_flat_US: a dataframe containing the US billings of type_A billings with no valid config type
+
+    :param df: the billings dataframe containing the same columns as the column returned
+
+    :return: a dataframe with the merged dataframes containing the following columns
+                'curr': The three digit currency for the row
+                'BU': The Enterprise BU for the billing
+                'period': The period of the billing in YYYY-PP format
+                'recognized_DC': The recognized document currency billings that go immediately to revenue
+                'recognized_US': The USD equivalent of these immediate revenue billings
+                'service_DC': The document currency billings for service billings that get placed into deferred and are
+                            moved to revenue as service is performed
+                'service_US': The USD equivalent of the service billings
+                'deferred_1M_DC': document currency deferred billings that will renew every month
+                'deferred_1M_US': USD equivalent of deferred 1M billings
+                'deferred_3M_DC': document currency deferred billings that will renew every 3 months
+                'deferred_3M_US': USD equivalent of deferred 3M billings
+                'deferred_6M_DC':document currency deferred billings that will renew every 6 months
+                'deferred_6M_US': USD equivalent of deferred 6M billings
+                'deferred_1Y_DC': document currency deferred billings that will renew every year
+                'deferred_1Y_US': USD equivalent of deferred annual billings
+                'deferred_2Y_DC': document currency deferred billings that will renew every 2 years
+                'deferred_2Y_US': USD equivalent of deferred 2Y billings
+                'deferred_3Y_DC': document currency deferred billings that will renew every 3 year
+                'deferred_3Y_US': USD equivalent of deferred 3Y billings
+
+
+    '''
     # ###### Merging the billings dataframe with the temp_flat_DC dataframe and and temp_flat_US dataframe and filling in any blanks with zero
     df_with_A = pd.merge(
         df,
@@ -1473,7 +1545,9 @@ def interp_FX_fwds(df_FX_rates):
 
 
 def test_df_duplicates(df):
-    ''' Testing whether we have duplicates in our merged dataframe'''
+    '''
+    Testing whether we have duplicates in our merged dataframe
+    '''
     df_test_dup = df.copy()
     orig_len = len(df_test_dup)
     print("Original Length of the dataframe before duplicate test: ", orig_len)
@@ -2218,6 +2292,70 @@ def load_base_billings(config_dict):
     return df, model_dict, df_no_POB, gb_a_no_config, gb_d_no_rebill
 
 def classify_no_POB(config_dict, df):
+    '''
+    Many of the rows of data from the base billings file do not contain a POB_type classification.
+    This function attempts to classify these billings both in revenue type {'Immediate', 'service', 'deferred'}
+    and in the frequency of rebillings {'1M', '3M', '6M', '1Y', '2Y', '3Y'} basd on sales document type.
+
+    The list of sales document types and their classifications is included in the base_config.json file
+    and also explained in the 'Deferred Revenue Model August 2020.doc' file contained in the docs folder.
+    Please review this before debugging this function.
+
+    NOTE: If a billings has no POB_type AND no rev_req_type, then it is classified as immediate revenue.
+
+    :param config_dict: The main dictionary for the deferred revenue model
+    :param df: a dataframe containing the deferred billings that did not have a POB_type in the tableua
+            extract contined in the 'all_base_billings.xlsx' file on the 'base_billlings' tab.
+            The df_no_POB dataframe contains the following fields:
+                    'curr': The 3character currency ticker for this row of billings
+                    'BU': The enterprise document currency
+                    'period': The periods of the billing in YYYY-PP format
+                    'POB_type': The POB_type classification (in the df_no_POB file, these are all blank)
+                    'config': This is the type A configuration {'MTHLY', '1Y', '2Y', '3Y', 'OUCONS', 'ONORE', BLANK}
+                    'rev_req_type': This is the revenue recognition classification (pre 606) {'A', 'B', 'D', 'F', BLANK}
+                    'rebill_rule': This is the field that classifies the rev_req_type == D billings. The list of possible
+                                rebill_rules is contained in the base_config.json file
+                    'sales_doc': For some of these billings that are missing important fields, we use the sales_doc type
+                                to classify their type (deferred, service or immediate) and rebillings frequency
+                    'sales_type': This is an old field that was used before POB_type became implemented with 606.
+                                Pre 606, this was used to classify billings as being deferred, service or immediate rev.
+                                The field is kept here to attempt to classify billings that are missing data fields
+                    'sub_term': The sub term is the length of the subscription (mostly for type D billings). This field
+                                is used in conjunction with the rebill_rule to determine billings frequency
+                    'DC_amount': The document currency amount of the billing
+                    'US_amount': The USD eqiuvalent of the document currency billing
+
+    :return:df: a dataframe containing the classified billings that do not have a POB_type.
+                The fields to this dataframe:
+                'curr': The three digit currency for the row
+                'BU': The Enterprise BU for the billing
+                'period': The period of the billing in YYYY-PP format
+                'recognized_DC': The recognized document currency billings that go immediately to revenue
+                'recognized_US': The USD equivalent of these immediate revenue billings
+                'service_DC': The document currency billings for service billings that get placed into deferred and are
+                            moved to revenue as service is performed
+                'service_US': The USD equivalent of the service billings
+                'deferred_1M_DC': document currency deferred billings that will renew every month
+                'deferred_1M_US': USD equivalent of deferred 1M billings
+                'deferred_3M_DC': document currency deferred billings that will renew every 3 months
+                'deferred_3M_US': USD equivalent of deferred 3M billings
+                'deferred_6M_DC':document currency deferred billings that will renew every 6 months
+                'deferred_6M_US': USD equivalent of deferred 6M billings
+                'deferred_1Y_DC': document currency deferred billings that will renew every year
+                'deferred_1Y_US': USD equivalent of deferred annual billings
+                'deferred_2Y_DC': document currency deferred billings that will renew every 2 years
+                'deferred_2Y_US': USD equivalent of deferred 2Y billings
+                'deferred_3Y_DC': document currency deferred billings that will renew every 3 year
+                'deferred_3Y_US': USD equivalent of deferred 3Y billings
+
+            gb_a_no_config: contains rows that have no POB_type, are revenue recognition type A but have a
+                            product_config type that cannot be classified. i.e. they are not {"MTHLY", '1Y", "2Y", "3Y"}
+                            The fields to this dataframe are the same as the input dataframe df
+
+            gb_d_no_rebill: contains rows that have no POB_type, are classified as revenue recognition type D and have
+                            no rebill_rule field. NOTE: We expect this dataframe to be blank unless there is an issue
+                            with the tableua data extracted to the base bilings file.
+    '''
     # When there is no POB type, we need to classify based on sales document type
     # the dataframe df that gets passed in here is df_no_POB
     sales_doc_type = config_dict["sales_doc_type"]
@@ -2245,25 +2383,13 @@ def classify_no_POB(config_dict, df):
     print(no_rev_req_type)
 
     # combining rec_no_POB with no_rev_req_type (no_rev_req_type assume immediate revenue)
-    #df_rec_merged = pd.merge(
-    #    rec_no_POB,
-    #    no_rev_req_type,
-    #    how="outer",
-    #    left_on=["curr", "BU", "period"],
-    #    right_on=["curr", "BU", "period"]
-    #)
     df_rec = pd.concat([rec_no_POB, no_rev_req_type])
     gb_rec = df_rec.groupby(["curr", "BU", "period"]).sum()
     gb_rec.drop(labels=["sub_term"], axis=1, inplace=True)
 
     # combining the two types of service revenue
-    #df_svc_merged = pd.merge(
-    #    svc_no_POB,
-    #    dfr_svc,
-    #    how="outer",
-    #    left_on=["curr", "BU", "period"],
-    #    right_on=["curr", "BU", "period"]
-    #)
+    # svc_no_POB is classified by sales_doc_type as being service
+    # drf_svc is a deferred billings by sales_doc_type, but has rev_req_type == B, which is service
     df_svc = pd.concat([svc_no_POB, dfr_svc])
     gb_svc = df_svc.groupby(["curr", "BU", "period"]).sum()
     gb_svc.drop(labels=["sub_term"], axis=1, inplace=True)
