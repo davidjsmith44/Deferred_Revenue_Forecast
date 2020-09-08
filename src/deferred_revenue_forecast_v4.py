@@ -179,8 +179,9 @@ print(
 df_book_period = build_booking_periods(df_bookings, df_billings)
 
 # ##### Converting these billings to local currency based on the forward rates at the time the plan was created
-# The booking forecast is in USD. I need to map this back into Document currency to forecast the billings in document currency. The 'plan' forward rates should have been used to create the initial USD amounts, so this is consistent with how we build the plan and bookings forecast
-
+# The booking forecast is in USD. I need to map this back into Document currency to forecast the billings in
+# document currency. The 'plan' forward rates should have been used to create the initial USD amounts,
+# so this is consistent with how we build the plan and bookings forecast
 df_book_period = convert_bookings_to_DC(df_book_period, df_FX_fwds)
 
 """Building the billings forecast in a dataframe called df_fcst
@@ -326,9 +327,9 @@ df_fcst = convert_fcst(df_fcst, df_FX_rates, list_columns, new_columns)
 # #### Need to take each BU/curr combination in the df_book_period rows and pull
 # P07, P08, P09 ... P12 and P07_US, P08_US ... P12_US and move them to the df_fcst
 # dataframe under the correct BU / curr / period section
-
 df_fcst = merge_bookings_to_fcst(df_book_period, df_fcst)
 
+print(df_fcst.columns)
 
 # Creating the deferred revenue waterfall from our forecasted billings dataframe
 df_wf = build_deferred_waterfall(df_fcst)
@@ -368,6 +369,7 @@ df_wf_init = load_and_clean_init_waterfall(config_dict)
 # ## Take the As Performed / Upon Acceptance column and place this into the df_wf_gb dataframe.
 # ## We will assume that this does not change over time
 df_as_performed = df_wf_init["As Performed / Upon Acceptance"].copy()
+df_as_performed = df_as_performed.to_frame()
 df_wf_init = df_wf_init.drop("As Performed / Upon Acceptance", axis=1)
 
 # Changing the periods in the df_wf_gb to match the df_wf_init first
@@ -395,7 +397,7 @@ df_wf_init = df_wf_init.reset_index()
 
 df_wf_init.rename(columns={"External Reporting BU": "BU"}, inplace=True)
 
-# ## ADDING ADDITONAL PERIODS HERE TO MERGE WITH df_wf
+# ## ADDING ADDITIONAL PERIODS HERE TO MERGE WITH df_wf
 
 df_wf_init["P28"] = 0
 df_wf_init["P29"] = 0
@@ -448,6 +450,7 @@ with pd.ExcelWriter("output.xlsx") as writer:
     df_wf_init.to_excel(writer, sheet_name="initial_waterfall")
     df_wf.to_excel(writer, sheet_name="billings_impact")
     df_all.to_excel(writer, sheet_name="combined")
+    df_as_performed.to_excel(writer, sheet_name="as_performed")
     #df_wf.to_excel(writer, sheet_name="early_wf")
 
 
@@ -476,12 +479,7 @@ pickle.dump(saved_dict, open("../data/processed/final_forecast_2.p", "wb"))
 
 #test_Q4["book_1Y_US"].sum()
 
-saved_dict["waterfall"] = df_all
-saved_dict["bill_waterfall"] = df_wf
-saved_dict["initial_waterfall"] = df_wf_init
-
-# ##### Merging the df_fcst with the df_bililngs for easier charting?
-
+# Merging the df_fcst with the df_bililngs for easier charting?
 
 df_billings["is_forecast"] = 0
 df_fcst["is_forecast"] = 1
@@ -501,7 +499,9 @@ input_df_dict = {
     "initial_waterfall": df_wf_init,
     "bill_waterfall": df_wf,
     "waterfall": df_all,
+    "as_performed": df_as_performed
 }
+
 pickle.dump(input_df_dict, open("../data/processed/final_forecast3.p", "wb"))
 
 

@@ -840,8 +840,8 @@ def load_bookings(config_dict):
     :return:
     '''
     filename_bookings = config_dict['path_to_data'] + config_dict['bookings']['filename']
-    boolings_sheetname = config_dict['bookings']['sheetname']
-    df_bookings = pd.read_excel(bookings_filename, bookings_sheetname)
+    bookings_sheetname = config_dict['bookings']['sheetname']
+    df_bookings = pd.read_excel(filename_bookings, bookings_sheetname)
 
     # Cleaning up the bookings data
     # NOTE: The bookings spreadsheet looks very different for Q2 versus prior quarters!
@@ -1657,9 +1657,9 @@ def build_booking_periods(df_bookings, df_billings):
 
     df_book_period = pd.DataFrame(data)
 
-    df_book_period.head(14)
+    #df_book_period.head(14)
 
-    df_bookings.BU.value_counts()
+    #df_bookings.BU.value_counts()
 
     # Fills in the df_book_period dataframe with the quarterly bookings numbers for each BU and currency
     # fill in the quarters
