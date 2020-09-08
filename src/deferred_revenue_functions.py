@@ -1696,7 +1696,7 @@ def build_booking_periods(df_bookings, df_billings):
     # ##### Creating lists of periods and quarters needed to fill out the df_book_period dataframe
     # list of quarters for the percentages
 
-    list_q3 = ["2019-07", "2019-08", "2019-09"]
+    list_q3 = ["2020-07", "2020-08", "2020-09"]
     list_q4 = ["2019-10", "2019-11", "2019-12"]
     list_q1 = ["2020-01", "2020-02", "2020-03"]
     list_q2 = ["2020-04", "2020-05", "2020-06"]
@@ -1708,9 +1708,9 @@ def build_booking_periods(df_bookings, df_billings):
         "2020-04",
         "2020-05",
         "2020-06",
-        "2019-07",
-        "2019-08",
-        "2019-09",
+        "2020-07",
+        "2020-08",
+        "2020-09",
         "2019-10",
         "2019-11",
         "2019-12",
