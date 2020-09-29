@@ -338,7 +338,7 @@ df_wf = df_wf.reset_index(drop=True)
 
 # The billings file is at the Enterprise BU level and the bookings forecast is at the BU level
 
-# ### Change the BU to match the waterfall BUs
+# Change the BU to match the waterfall BUs
 #  - Creative to Digital Media
 #  - Document Cloud to Digital Media
 #  - Print & Publishing to Publishing
@@ -454,16 +454,15 @@ with pd.ExcelWriter("output.xlsx") as writer:
     #df_wf.to_excel(writer, sheet_name="early_wf")
 
 
-# ## Add the as performed back into the waterfall forecast
-
+# Add the as performed back into the waterfall forecast
 df_all["Total"] = df_all[df_all.columns[:-1]].sum(axis=1)
 
 df_wf_init["Total"] = df_wf_init[df_wf_init.columns[:]].sum(axis=1)
 
 df_wf["Total"] = df_wf[df_wf.columns[1:]].sum(axis=1)
 
-# # Need to add these back to our model dictionary
-# ## At this point I dont recall what it was called and will need to change it
+# Need to add these back to our model dictionary
+# At this point I dont recall what it was called and will need to change it
 
 saved_dict = {}
 saved_dict["waterfall"] = df_all
@@ -472,15 +471,7 @@ saved_dict["initial_waterfall"] = df_wf_init
 
 pickle.dump(saved_dict, open("../data/processed/final_forecast_2.p", "wb"))
 
-# ### Testing parts of the bookings/waterfall
-#list_Q4 = ["2020-10", "2020-11", "2020-12"]
-#this_BU = "Creative"
-#test_Q4 = df[(df["BU"] == this_BU) & (df["period"].isin(list_Q4))]
-
-#test_Q4["book_1Y_US"].sum()
-
-# Merging the df_fcst with the df_bililngs for easier charting?
-
+# Merging the df_fcst with the df_billings for easier charting?
 df_billings["is_forecast"] = 0
 df_fcst["is_forecast"] = 1
 df = pd.concat([df_billings, df_fcst], join="outer", ignore_index=True)

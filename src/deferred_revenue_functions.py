@@ -11,7 +11,7 @@ plt.style.use("ggplot")
 def load_FX_data(config_dict):
     '''
     This function takes the config dictionary and creates a dataframe from the FX_data.xlsx file.
-    This dataframe inlcudes all of the currency exchange rates, their forward rates and vols
+    This dataframe includes all of the currency exchange rates, their forward rates and vols
 
     :param config_dict: the main configuration dictionary for the deferred revenue model
     :return: df: The final dataframe contains the following fields
@@ -352,6 +352,7 @@ def merge_all_dataframes(list_df, list_columns):
 
     :param list_df: The list of dataframes created in the load_base_billings file
     :param list_columns: The column names representing the type of billing and frequency of rebilling
+
     :return: df: This is the main dataframe for the billings we have classified. The dataframe contains the following columns
                 'curr': The three digit currency for the row
                 'BU': The Enterprise BU for the billing
@@ -2102,10 +2103,11 @@ def process_type_D(config_dict, df):
 
 def load_base_billings(config_dict):
     """
-    This loads up the base billings data and creates a the main billing dataframe (df) a dataframe of billings
-    that need to be further classified because they are missing a POB_type field (df_no_POB), a dataframe
-    that contains type A deferred billings that cannot be classified (df_type_a_no_config) and a dataframe
-    that contains any deferred type D billings that have no rebill rule and need to be reclassified.
+    This loads up the base billings data and creates the following:
+    1. the main billing dataframe (df)
+    2. a dataframe of billings that need to be further classified because they are missing a POB_type field (df_no_POB)
+    3. a dataframe that contains type A deferred billings that cannot be classified (df_type_a_no_config)
+    4.  a dataframe that contains any deferred type D billings that have no rebill rule and need to be reclassified.
 
     :param config_dict: This is the json config file.
     :return:
