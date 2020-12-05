@@ -1,6 +1,6 @@
 {
     "ADBE_cal": {
-        "direct_filename": "../Data/OLD/ADOBE_FINANCIAL_CALENDAR.xlsx",
+        "direct_filename": "/Volumes/Treasury/Financial_Database/ADOBE_FINANCIAL_CALENDAR.xlsx",
         "sheetname": "ADBE_cal"
     },
     "FX_forwards": {
@@ -11,53 +11,22 @@
         "filename": "FX_data.xlsx",
         "sheetname": "to_matlab"
     },
-    "POB_type_classifier": {
-        "list_IR": [
-            "IR",
-            "IR-NA",
-            "LFB"
-        ],
-        "list_service": [
-            "CR",
-            "CR-NA"
-        ],
-        "list_deferred": [
-            "RR",
-            "RR-NA"
-        ],
-        "list_hybrid": [
-            "BNDL"
-        ]
-    },
     "billings": {
         "filename": "all_billings_inputs.xlsx",
         "base_sheetname": "base_billings",
         "type_A_sheetname": "type_A_no_config"
     },
     "bookings": {
-        "filename": "2020_bookings_fcst_Q2.xlsx",
-        "sheetname": "source"
+        "filename_DME": "DME_Bookings_FY21_Plan.xlsx",
+        "sheetname_DME": "Raw",
+        "filename_DX": "DX_Bookings_FY21_Plan.xlsx",
+        "sheetname_DX": "Sheet1"
     },
     "curr_map": {
         "filename": "currency_map.xlsx",
         "sheetname": "curr_map"
     },
-    "hybrid_pct_IR": 0.17,
-    "list_columns": [
-        "recognized_",
-        "service_",
-        "deferred_B_",
-        "deferred_1M_",
-        "deferred_3M_",
-        "deferred_6M_",
-        "deferred_1Y_",
-        "deferred_2Y_",
-        "deferred_3Y_"
-    ],
     "list_future_periods": [
-        "2020-10",
-        "2020-11",
-        "2020-12",
         "2021-01",
         "2021-02",
         "2021-03",
@@ -66,99 +35,14 @@
         "2021-06",
         "2021-07",
         "2021-08",
-        "2021-09"
+        "2021-09",
+        "2021-10",
+        "2021-11",
+        "2021-12"
     ],
-    "new_columns": [
-        "fwd_01M",
-        "fwd_02M",
-        "fwd_03M",
-        "fwd_04M",
-        "fwd_05M",
-        "fwd_06M",
-        "fwd_07M",
-        "fwd_08M",
-        "fwd_09M",
-        "fwd_10M",
-        "fwd_11M",
-        "fwd_12M"
-    ],
-    "path_to_data": "../data/Data_2020_P09/",
+    "path_to_data": "/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2020_P12/",
     "output_dir": {
         "intermediate": "../data/Data_2020_P09/processed/intermediate/",
         "final": "../data/Data_2020_P09/processed/final/"
-    },
-    "sales_doc_type": {
-        "immediate_revenue": [
-            "L2",
-            "RE",
-            "G2",
-            "KE",
-            "KR",
-            "OR",
-            "ZACR",
-            "ZCCR",
-            "ZCDR",
-            "ZCOR",
-            "ZCSR",
-            "ZCRE",
-            "ZCS2",
-            "ZLO3",
-            "ZLO1",
-            "ZLO2",
-            "ZOG2",
-            "ZOL2",
-            "ZOTM"
-        ],
-        "service": [
-            "ZATS",
-            "ZPS"
-        ],
-        "deferred": [
-            "ZCC",
-            "ZCS1",
-            "ZCQ",
-            "ZCQA",
-            "ZLCR",
-            "ZLDR",
-            "ZLG2",
-            "ZLO5",
-            "ZREB",
-            "ZRG2",
-            "ZRL2",
-            "ZCSB"
-        ]
-    },
-    "type_A_config_keepers": [
-        "MTHLY",
-        "1Y",
-        "2Y",
-        "3Y"
-    ],
-    "type_D_classification": {
-        "list_monthly": [
-            "Y1",
-            "Y2",
-            "Y3",
-            "YM"
-        ],
-        "list_qtrly": [
-            "YQ",
-            "YY",
-            "YT"
-        ],
-        "list_semi_ann": [
-            "YH"
-        ],
-        "list_ann": [
-            "YA",
-            "YC",
-            "YX"
-        ],
-        "list_2yrs": [
-            "Y4"
-        ],
-        "list_3yrs": [
-            "Y7"
-        ]
     }
 }

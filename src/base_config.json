@@ -80,7 +80,9 @@
             "ZREB",
             "ZRG2",
             "ZRL2",
-            "ZCSB"
+            "ZCSB",
+            "ZUP1",
+            "ZUPR"
         ]
     },
     "type_A_config_keepers": [
