@@ -971,9 +971,11 @@ def clean_bookings(df_bookings):
     # - Premier Support (This is a new requirement for Q2 2020)
     #
     # ###### Note: These get summed by their booking amount later in the program, so we don't need to do that here
+    #
+    # New bookings file is just Net Asv, so we no longer need to include permiere support
     df_bookings = df_bookings[
         df_bookings["booking_type"].isin(
-            ["ASV", "Total Subscription Attrition", "Premier Support"]
+            ["Net ASV"]
         )
     ]
 
