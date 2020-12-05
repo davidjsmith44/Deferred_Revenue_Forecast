@@ -1,0 +1,95 @@
+filename = r'/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/DATA_2020_p12/DME_Bookings_FY21_Plan.xlsx'
+sheetname = 'Raw'
+df_DME = pd.read_excel(filename, sheetname)
+
+df_DME = df_DME.rename(columns = {'Metrics': 'metrics',
+                        'Profit center': 'profit_center',
+                        'Market Area': 'market_area',
+                        'Market Segement': 'segment',
+                        'Q1 2021':'Q1_2021',
+                        'Q2 2021':'Q2_2021',
+                        'Q3 2021':'Q3_2021',
+                        'Q4 2021':'Q4_2021'
+                        })
+
+# identify the characters in a string
+df_DME['in_parens'] =  df_DME['market_area'].apply(lambda st: st[st.find("(")+1:st.find(")")])
+
+df_DME['market_area'] = df_DME['market_area'].apply(lambda st: st[0:st.find("(")-1])
+
+df_DME['pc_ID'] = df_DME['profit_center'].apply(lambda st: st[0:st.find('-')])
+df_DME['pc_descr'] = df_DME['profit_center'].apply(lambda st: st[st.find('-')+1:])
+
+df_DME['geo'] = df_DME[df_DME['in_parens']=='G']['market_area']
+df_DME['geo'] =df_DME['geo'].ffill()
+
+df_DME['region'] = df_DME[df_DME['in_parens']=='R']['market_area']
+df_DME['region'] = df_DME['region'].ffill()
+
+# filter to just include market area
+df_DME = df_DME[df_DME['in_parens']=='MA'].copy()
+
+# only want the Net ACV bookings
+df_DME = df_DME[df_DME['metrics']=='Net ACV']
+
+# drop unnecessary columns and reorder the columns
+df_DME = df_DME[['pc_descr', 'pc_ID', 'geo', 'region', 'market_area', 'segment', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021', '2021']]
+
+# We need to remove the segment data: it is not included in the DX bookings
+df_DME = df_DME.groupby(by = ['pc_descr', 'geo', 'region', 'market_area']).sum()
+df_DME = df_DME.rest_index()
+
+# need to add the BU and segment information to the bookings file so that it matches
+df_DME['BU'] = 'Digital Media'
+df_DME['segment'] = 'Creative'
+
+# getting the columns in order (not necessary)
+df_DME = df_DME[['BU', 'segment', 'pc_descr','geo', 'region', 'market_area', 'segment', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021', '2021']]
+
+
+
+# DX
+filename = r'/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/DATA_2020_p12/DX_Bookings_FY21_Plan.xlsx'
+sheetname = 'Sheet1'
+start=12
+df_DX = pd.read_excel(filename, sheetname, skiprows=start)
+
+df_DX = df_DX.rename(columns = {'Unnamed: 0': 'segment',
+                                'Unnamed: 1': 'market_area',
+                                'Unnamed: 2': 'profit_center',
+                                'Q1 2021':'Q1_2021',
+                                'Q2 2021':'Q2_2021',
+                                'Q3 2021':'Q3_2021',
+                                'Q4 2021':'Q4_2021'
+                                })
+
+# identify the characters in a string
+df_DX['in_parens'] =  df_DX['market_area'].apply(lambda st: st[st.find("(")+1:st.find(")")])
+
+df_DX['market_area'] = df_DX['market_area'].apply(lambda st: st[0:st.find("(")-1])
+
+df_DX['pc_ID'] = df_DX['profit_center'].apply(lambda st: st[0:st.find('-')])
+df_DX['pc_descr'] = df_DX['profit_center'].apply(lambda st: st[st.find('-')+1:])
+
+df_DX['geo'] = df_DX[df_DX['in_parens']=='G']['market_area']
+df_DX['geo'] =df_DX['geo'].ffill()
+
+df_DX['region'] = df_DX[df_DX['in_parens']=='R']['market_area']
+df_DX['region'] = df_DX['region'].ffill()
+
+# filter to just include market area
+df_DX = df_DX[df_DX['in_parens']=='MA'].copy()
+
+# drop unnecessary columns and reorder the columns
+df_DX = df_DX.drop(columns=['profit_center', 'in_parens' ])
+df_DX = df_DX[['pc_descr', 'pc_ID', 'geo', 'region', 'market_area', 'segment', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021', '2021']]
+
+# We need to remove the segment data: it is not included in the DME bookings
+df_DX = df_DX.groupby(by = ['pc_descr', 'geo', 'region', 'market_area']).sum()
+df_DX = df_DX.reset_index()
+
+# need to add the BU and segment information to the bookings file so that it matches
+df_DX['BU'] = 'Digital Experience'
+df_DX['segment'] = 'Experience Cloud'
+
+df_DME = df_DME[['BU', 'segment', 'pc_descr','geo', 'region', 'market_area', 'segment', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021', '2021']]
