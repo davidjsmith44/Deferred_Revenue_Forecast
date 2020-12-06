@@ -1,8 +1,15 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+import pickle
+
 filename = r'/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/DATA_2020_p12/DME_Bookings_FY21_Plan.xlsx'
 sheetname = 'Raw'
 df_DME = pd.read_excel(filename, sheetname)
 
-df_DME = df_DME.rename(columns = {'Metrics': 'metrics',
+df_DME = df_DME.rename(columns={'Metrics': 'metrics',
                         'Profit center': 'profit_center',
                         'Market Area': 'market_area',
                         'Market Segement': 'segment',
@@ -65,7 +72,7 @@ df_DME = df_DME.reset_index()
 df_DME = df_DME[['BU', 'segment', 'geo', 'region', 'market_area', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021']]
 
 
-print('Done with the DME dataframe:'
+print('Done with the DME dataframe:')
 print(df_DME.sum())
 
 # -------------------------------------
@@ -75,14 +82,14 @@ sheetname = 'Sheet1'
 start=12
 df_DX = pd.read_excel(filename, sheetname, skiprows=start)
 
+
 df_DX = df_DX.rename(columns = {'Unnamed: 0': 'segment',
                                 'Unnamed: 1': 'market_area',
                                 'Unnamed: 2': 'profit_center',
                                 'Q1 2021':'Q1_2021',
                                 'Q2 2021':'Q2_2021',
                                 'Q3 2021':'Q3_2021',
-                                'Q4 2021':'Q4_2021'
-                                })
+                                'Q4 2021':'Q4_2021'})
 
 df_DX = df_DX.drop(columns = ['segment', '2021'])
 
@@ -115,10 +122,10 @@ df_DX = df_DX[['BU', 'segment', 'geo', 'region', 'market_area', 'Q1_2021','Q2_20
 df_DX = df_DX.groupby(by = ['BU', 'segment', 'geo', 'region', 'market_area']).sum()
 df_DX = df_DX.reset_index()
 
-
-
-
-
-
+print('Done with the DX dataframe:')
+print(df_DX.sum())
 
 df = pd.concat([df_DME, df_DX])
+
+print(df.columns)
+print(df.sample(20))
