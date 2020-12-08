@@ -391,7 +391,7 @@ list_periods = df_wf.period.unique()
 
 list_BU = df_wf.BU.unique()
 
-df_wf_init["period"] = "2020-10"
+df_wf_init["period"] = config_dict['waterfall_initial_period']
 
 df_wf_init = df_wf_init.reset_index()
 
