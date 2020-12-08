@@ -13,7 +13,7 @@ import pickle
 
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 # loading up my data from deferred revenue
-import_thing = pickle.load(open("../data/processed/final_forecast3.p", "rb"))
+import_thing = pickle.load(open('/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2020_p12/processed/final_forecast3.p', "rb"))
 df = import_thing["final"]
 df_wf = import_thing["waterfall"]
 list_currencies = df["curr"].unique()
