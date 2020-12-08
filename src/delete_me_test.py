@@ -2,130 +2,144 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+def load_bookings(config_dict):
+    '''
+    The bookings files come from FP&A and the structure of these files changes often
 
-import pickle
+    :param config_dict:
+    :return: df_bookings
+    '''
+    filename_DX = config_dict['path_to_data'] + config_dict['bookings']['filename_DX']
+    sheetname_DX = config_dict['bookings']['sheetname_DX']
 
-filename = r'/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/DATA_2020_p12/DME_Bookings_FY21_Plan.xlsx'
-sheetname = 'Raw'
-df_DME = pd.read_excel(filename, sheetname)
+    filename_DME = config_dict['path_to_data'] + config_dict['bookings']['filename_DME']
+    sheetname_DME = config_dict['bookings']['sheetname_DME']
+    start_row_DME = config_dict['bookings']['start_row_DME']
 
-df_DME = df_DME.rename(columns={'Metrics': 'metrics',
-                        'Profit center': 'profit_center',
-                        'Market Area': 'market_area',
-                        'Market Segement': 'segment',
-                        'Q1 2021':'Q1_2021',
-                        'Q2 2021':'Q2_2021',
-                        'Q3 2021':'Q3_2021',
-                        'Q4 2021':'Q4_2021'
-                        })
+    df_DX = load_DX_bookings(filename, sheetname, start)
+    df_DME = load_DME_bookings(filename, sheetname)
+    df = pd.concat([df_DME, df_DX])
 
-# Drop the columns that we will not use
-df_DME = df_DME.drop(columns = ['segment', 'GTM', '2021'])
+    return df
 
-# only want the Net ACV bookings
-df_DME = df_DME[df_DME['metrics']=='Net ACV']
+def load_DME_bookings(filename, sheetname):
 
-# ADJUSTING THE profit_center to not double count numbers
-# creating the BU_ID
-df_DME['BU_id'] =  df_DME['profit_center'].apply(lambda st: st[0:st.find("-")])
-df_DME['BU_segment'] = df_DME['profit_center'].apply(lambda st: st[st.find("-")+1:])
+    df_DME = pd.read_excel(filename, sheetname)
 
-df_DME['BU_id'] = df_DME['BU_id'].str.strip()
-df_DME['BU_segment'] = df_DME['BU_segment'].str.strip()
+    df_DME = df_DME.rename(columns={'Metrics': 'metrics',
+                            'Profit center': 'profit_center',
+                            'Market Area': 'market_area',
+                            'Market Segement': 'segment',
+                            'Q1 2021':'Q1_2021',
+                            'Q2 2021':'Q2_2021',
+                            'Q3 2021':'Q3_2021',
+                            'Q4 2021':'Q4_2021'
+                            })
 
-list_BU_keepers = ['EB10', 'EB15']
-df_DME = df_DME[df_DME['BU_id'].isin(list_BU_keepers)]
+    # Drop the columns that we will not use
+    df_DME = df_DME.drop(columns = ['segment', 'GTM', '2021'])
 
+    # only want the Net ACV bookings
+    df_DME = df_DME[df_DME['metrics']=='Net ACV']
 
+    # ADJUSTING THE profit_center to not double count numbers
+    # creating the BU_ID
+    df_DME['BU_id'] =  df_DME['profit_center'].apply(lambda st: st[0:st.find("-")])
+    df_DME['BU_segment'] = df_DME['profit_center'].apply(lambda st: st[st.find("-")+1:])
 
-# NOW WORKING ON GEO, REGION and MARKET AREA
-# identify the characters in a string
-df_DME['in_parens'] =  df_DME['market_area'].apply(lambda st: st[st.find("(")+1:st.find(")")])
+    df_DME['BU_id'] = df_DME['BU_id'].str.strip()
+    df_DME['BU_segment'] = df_DME['BU_segment'].str.strip()
 
-df_DME['market_area'] = df_DME['market_area'].apply(lambda st: st[0:st.find("(")-1])
+    list_BU_keepers = ['EB10', 'EB15']
+    df_DME = df_DME[df_DME['BU_id'].isin(list_BU_keepers)]
 
-df_DME['pc_ID'] = df_DME['profit_center'].apply(lambda st: st[0:st.find('-')])
-df_DME['pc_descr'] = df_DME['profit_center'].apply(lambda st: st[st.find('-')+1:])
+    # NOW WORKING ON GEO, REGION and MARKET AREA
+    # identify the characters in a string
+    df_DME['in_parens'] =  df_DME['market_area'].apply(lambda st: st[st.find("(")+1:st.find(")")])
 
-df_DME['geo'] = df_DME[df_DME['in_parens']=='G']['market_area']
-df_DME['geo'] =df_DME['geo'].ffill()
+    df_DME['market_area'] = df_DME['market_area'].apply(lambda st: st[0:st.find("(")-1])
 
-df_DME['region'] = df_DME[df_DME['in_parens']=='R']['market_area']
-df_DME['region'] = df_DME['region'].ffill()
+    df_DME['pc_ID'] = df_DME['profit_center'].apply(lambda st: st[0:st.find('-')])
+    df_DME['pc_descr'] = df_DME['profit_center'].apply(lambda st: st[st.find('-')+1:])
 
-# filter to just include market area
-df_DME = df_DME[df_DME['in_parens']=='MA'].copy()
+    df_DME['geo'] = df_DME[df_DME['in_parens']=='G']['market_area']
+    df_DME['geo'] =df_DME['geo'].ffill()
 
-# drop unnecessary columns and reorder the columns
-df_DME = df_DME.drop(columns=['profit_center', 'in_parens' ])
+    df_DME['region'] = df_DME[df_DME['in_parens']=='R']['market_area']
+    df_DME['region'] = df_DME['region'].ffill()
 
-# Rename pc_descr to be segment
-df_DME.rename(columns = {'pc_descr': 'segment'}, inplace=True)
+    # filter to just include market area
+    df_DME = df_DME[df_DME['in_parens']=='MA'].copy()
 
-# Add the BU
-df_DME['BU'] = 'Digital Media'
+    # drop unnecessary columns and reorder the columns
+    df_DME = df_DME.drop(columns=['profit_center', 'in_parens' ])
 
-# We need to remove the segment data: it is not included in the DME bookings
-df_DME = df_DME.groupby(by = ['BU', 'segment', 'geo', 'region', 'market_area']).sum()
-df_DME = df_DME.reset_index()
+    # Rename pc_descr to be segment
+    df_DME.rename(columns = {'pc_descr': 'segment'}, inplace=True)
 
-df_DME = df_DME[['BU', 'segment', 'geo', 'region', 'market_area', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021']]
+    # Add the BU
+    df_DME['BU'] = 'Digital Media'
 
+    # We need to remove the segment data: it is not included in the DME bookings
+    df_DME = df_DME.groupby(by = ['BU', 'segment', 'geo', 'region', 'market_area']).sum()
+    df_DME = df_DME.reset_index()
 
-print('Done with the DME dataframe:')
-print(df_DME.sum())
-
-# -------------------------------------
-# DX
-filename = r'/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/DATA_2020_p12/DX_Bookings_FY21_Plan.xlsx'
-sheetname = 'Sheet1'
-start=12
-df_DX = pd.read_excel(filename, sheetname, skiprows=start)
-
-
-df_DX = df_DX.rename(columns = {'Unnamed: 0': 'segment',
-                                'Unnamed: 1': 'market_area',
-                                'Unnamed: 2': 'profit_center',
-                                'Q1 2021':'Q1_2021',
-                                'Q2 2021':'Q2_2021',
-                                'Q3 2021':'Q3_2021',
-                                'Q4 2021':'Q4_2021'})
-
-df_DX = df_DX.drop(columns = ['segment', '2021'])
-
-# identify the characters in a string
-df_DX['in_parens'] =  df_DX['market_area'].apply(lambda st: st[st.find("(")+1:st.find(")")])
-
-df_DX['market_area'] = df_DX['market_area'].apply(lambda st: st[0:st.find("(")-1])
-
-df_DX['pc_ID'] = df_DX['profit_center'].apply(lambda st: st[0:st.find('-')])
-df_DX['pc_descr'] = df_DX['profit_center'].apply(lambda st: st[st.find('-')+1:])
-
-df_DX['geo'] = df_DX[df_DX['in_parens']=='G']['market_area']
-df_DX['geo'] =df_DX['geo'].ffill()
-
-df_DX['region'] = df_DX[df_DX['in_parens']=='R']['market_area']
-df_DX['region'] = df_DX['region'].ffill()
-
-# filter to just include market area
-df_DX = df_DX[df_DX['in_parens']=='MA'].copy()
+    df_DME = df_DME[['BU', 'segment', 'geo', 'region', 'market_area', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021']]
 
 
-# Adding BU and Segment information (all Exp Cloud)
-df_DX['BU'] = 'Digital Experience'
-df_DX['segment'] = 'Experience Cloud'
+    print('Done with the DME dataframe:')
+    print(df_DME.sum())
 
-# drop unnecessary columns and reorder the columns
-df_DX = df_DX[['BU', 'segment', 'geo', 'region', 'market_area', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021']]
+    return df_DME
 
-# We need to remove the segment data: it is not included in the DME bookings
-df_DX = df_DX.groupby(by = ['BU', 'segment', 'geo', 'region', 'market_area']).sum()
-df_DX = df_DX.reset_index()
 
-print('Done with the DX dataframe:')
-print(df_DX.sum())
+def load_DX_bookings(filename, sheetname, start_row):
+    df_DX = pd.read_excel(filename, sheetname, skiprows=start_row)
 
-df = pd.concat([df_DME, df_DX])
 
-print(df.columns)
-print(df.sample(20))
+    df_DX = df_DX.rename(columns = {'Unnamed: 0': 'segment',
+                                    'Unnamed: 1': 'market_area',
+                                    'Unnamed: 2': 'profit_center',
+                                    'Q1 2021':'Q1_2021',
+                                    'Q2 2021':'Q2_2021',
+                                    'Q3 2021':'Q3_2021',
+                                    'Q4 2021':'Q4_2021'})
+
+    df_DX = df_DX.drop(columns = ['segment', '2021'])
+
+    # identify the characters in a string
+    df_DX['in_parens'] =  df_DX['market_area'].apply(lambda st: st[st.find("(")+1:st.find(")")])
+
+    df_DX['market_area'] = df_DX['market_area'].apply(lambda st: st[0:st.find("(")-1])
+
+    df_DX['pc_ID'] = df_DX['profit_center'].apply(lambda st: st[0:st.find('-')])
+    df_DX['pc_descr'] = df_DX['profit_center'].apply(lambda st: st[st.find('-')+1:])
+
+    df_DX['geo'] = df_DX[df_DX['in_parens']=='G']['market_area']
+    df_DX['geo'] =df_DX['geo'].ffill()
+
+    df_DX['region'] = df_DX[df_DX['in_parens']=='R']['market_area']
+    df_DX['region'] = df_DX['region'].ffill()
+
+    # filter to just include market area
+    df_DX = df_DX[df_DX['in_parens']=='MA'].copy()
+
+
+    # Adding BU and Segment information (all Exp Cloud)
+    df_DX['BU'] = 'Digital Experience'
+    df_DX['segment'] = 'Experience Cloud'
+
+    # drop unnecessary columns and reorder the columns
+    df_DX = df_DX[['BU', 'segment', 'geo', 'region', 'market_area', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021']]
+
+    # We need to remove the segment data: it is not included in the DME bookings
+    df_DX = df_DX.groupby(by = ['BU', 'segment', 'geo', 'region', 'market_area']).sum()
+    df_DX = df_DX.reset_index()
+
+    print('Done with the DX dataframe:')
+    print(df_DX.sum())
+
+    return df_DX
+
+
+

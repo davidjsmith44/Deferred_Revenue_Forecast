@@ -446,7 +446,7 @@ df_all = df_all.sort_index()
 df_wf = df_wf.sort_index()
 
 # #### Sending this data over to excel as a check
-with pd.ExcelWriter("output.xlsx") as writer:
+with pd.ExcelWriter("/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2020_p12/processed/final/output.xlsx") as writer:
     df_wf_init.to_excel(writer, sheet_name="initial_waterfall")
     df_wf.to_excel(writer, sheet_name="billings_impact")
     df_all.to_excel(writer, sheet_name="combined")
@@ -469,7 +469,7 @@ saved_dict["waterfall"] = df_all
 saved_dict["bill_waterfall"] = df_wf
 saved_dict["initial_waterfall"] = df_wf_init
 
-pickle.dump(saved_dict, open("../data/processed/final_forecast_2.p", "wb"))
+pickle.dump(saved_dict, open("/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2020_p12/processed/final/final_forecast_2.p", "wb"))
 
 # Merging the df_fcst with the df_billings for easier charting?
 df_billings["is_forecast"] = 0
@@ -493,6 +493,6 @@ input_df_dict = {
     "as_performed": df_as_performed
 }
 
-pickle.dump(input_df_dict, open("../data/processed/final_forecast3.p", "wb"))
+pickle.dump(input_df_dict, open("/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2020_p12/processed/final_forecast3.p", "wb"))
 
 

@@ -20,7 +20,8 @@
         "filename_DME": "DME_Bookings_FY21_Plan.xlsx",
         "sheetname_DME": "Raw",
         "filename_DX": "DX_Bookings_FY21_Plan.xlsx",
-        "sheetname_DX": "Sheet1"
+        "sheetname_DX": "Sheet1",
+        "start_row_DX": 12
     },
     "curr_map": {
         "filename": "currency_map.xlsx",

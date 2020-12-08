@@ -582,6 +582,7 @@ def find_unique_curr_and_BU(df_billings):
 def create_billing_forecast(df_billings, df_fcst):
     v_un_BU, v_un_curr = find_unique_curr_and_BU(df_billings)
 
+    print('Debug Stop')
     # new Vectorized approach (sort of)
     counter = 0
 
@@ -714,7 +715,7 @@ def create_billing_forecast(df_billings, df_fcst):
             period_weeks = period_weeks.to_numpy()
             period_weeks = period_weeks.reshape(-1, 1)
 
-            this_y = np.true_divide(this_y, period_weeks)
+            this_y = np.true_divide(this_y, period_weeks, where=period_weeks>0)
             this_y = np.nan_to_num(this_y)
             X = np.arange(len(this_y))
 
@@ -741,11 +742,11 @@ def create_billing_forecast(df_billings, df_fcst):
 
             df_fcst.loc[
                 (df_fcst["BU"] == this_BU) & (df_fcst["curr"] == this_curr), "intercept"
-            ] = this_model["intercept"]
+            ] = this_model["intercept"][0]
 
             df_fcst.loc[
                 (df_fcst["BU"] == this_BU) & (df_fcst["curr"] == this_curr), "coeff"
-            ] = this_model["coeff"]
+            ] = this_model["coeff"][0]
 
             df_fcst.loc[
                 (df_fcst["BU"] == this_BU) & (df_fcst["curr"] == this_curr), "X_length"
@@ -789,9 +790,9 @@ def build_monthly_forecast(X, y):
     best_int = best_model.intercept_
     best_coeff = best_model.coef_
 
-    # print("Model Score :",       best_score)
-    # print("Model intercept :",   best_model.intercept_)
-    # print("Model Coefficient :", best_model.coef_)
+    print("Model Score :",       best_score)
+    print("Model intercept :",   best_model.intercept_)
+    print("Model Coefficient :", best_model.coef_)
 
     for start_row in np.arange(1, y.shape[0] - 12):
         new_X = X[start_row:]
@@ -803,9 +804,9 @@ def build_monthly_forecast(X, y):
         new_int = new_model.intercept_
         new_coeff = new_model.coef_
 
-        # print("Model Score :",       new_score)
-        # print("Model intercept :",   new_model.intercept_)
-        # print("Model Coefficient :", new_model.coef_)
+        print("Model Score :",       new_score)
+        print("Model intercept :",   new_model.intercept_)
+        print("Model Coefficient :", new_model.coef_)
 
         # if the new model beats the best model, reassign to the best model
         if new_score > best_score:
@@ -819,6 +820,9 @@ def build_monthly_forecast(X, y):
 
     # perform the forecast
     fcst_y = best_model.predict(fcst_X)
+
+    # ADDED 12/7/2020 due to error adding coeff to the dataframe
+    best_coeff = best_coeff.flatten()
     monthly_model = dict(
         {
             "model": best_model,
@@ -832,154 +836,154 @@ def build_monthly_forecast(X, y):
 
     return monthly_model
 
-
 def load_bookings(config_dict):
     '''
-    This function creates a dataframe that contains the bookings forecast that FP&A provides.
+    The bookings files come from FP&A and the structure of these files changes often
 
-    :param config_dict: This is the dictionary that contains all of the parameters for the deferred model
-    :return:
+    :param config_dict:
+    :return: df_bookings
     '''
-    filename_bookings = config_dict['path_to_data'] + config_dict['bookings']['filename']
-    bookings_sheetname = config_dict['bookings']['sheetname']
-    df_bookings = pd.read_excel(filename_bookings, bookings_sheetname)
+    filename_DX = config_dict['path_to_data'] + config_dict['bookings']['filename_DX']
+    sheetname_DX = config_dict['bookings']['sheetname_DX']
+    start_row_DX = config_dict['bookings']['start_row_DX']
 
-    # Cleaning up the bookings data
-    # NOTE: The bookings spreadsheet looks very different for Q2 versus prior quarters!
-    #  - remove odd strings such as '(GP)' from BU, (IS) from Internal Segment, etc
-    #  - dropping columns we do not need
-    #  - renaming columns to better match our data naming convention
-    #
-    #  NOTE: The '('  and ')' is a special character so we need to precede these with the escape character '\'
-    #
-    #  NOTE: 2 The columns also have leading or trailing spaces, we need to strip them
-
-    df_bookings["EBU"] = df_bookings["EBU"].str.replace(" \(GP\)", "", case=False)
-    df_bookings["Internal Segment"] = df_bookings["Internal Segment"].str.replace(
-        "\(IS\)", ""
-    )
-    df_bookings["PMBU"] = df_bookings["PMBU"].str.replace("\(PMBU\)", "")
-    df_bookings["Geo"] = df_bookings["Geo"].str.replace("\(G\)", "")
-    df_bookings["Market Area"] = df_bookings["Market Area"].str.replace("\(MA\)", "")
-    df_bookings["Booking Type (Low)"] = df_bookings["Booking Type (Low)"].str.replace(
-        "\(MA\)", ""
-    )
-
-    df_bookings["EBU"] = df_bookings["EBU"].str.strip()
-    df_bookings["Internal Segment"] = df_bookings["Internal Segment"].str.strip()
-    df_bookings["PMBU"] = df_bookings["PMBU"].str.strip()
-    df_bookings["Geo"] = df_bookings["Geo"].str.strip()
-    df_bookings["Market Area"] = df_bookings["Market Area"].str.strip()
-    df_bookings["Booking Type (Low)"] = df_bookings["Booking Type (Low)"].str.strip()
-
-    df_bookings.drop(
-        columns=[
-            "Bookings Hedge",
-            "Market Segment",
-            "Booking Type (High)",
-            "Plan",
-            "FX Conversion",
-        ],
-        inplace=True,
-    )
-
-    df_bookings.rename(
-        index=str,
-        columns={
-            "EBU": "BU",
-            "Internal Segment": "segment",
-            "PMBU": "product",
-            "Geo": "geo",
-            "Market Area": "country",
-            "Booking Type (Low)": "booking_type",
-            "Value": "US_amount",
-            "Fiscal Quarter": "Quarter",
-        },
-        inplace=True,
-    )
-
-    df_bookings = clean_bookings(df_bookings)
-
-    return df_bookings
+    filename_DME = config_dict['path_to_data'] + config_dict['bookings']['filename_DME']
+    sheetname_DME = config_dict['bookings']['sheetname_DME']
 
 
-def clean_bookings(df_bookings):
-    '''
-    The pivot table Karen is using only look at 4 EBUs
-    - Creative
-      - Document Cloud
-      - Digital Experience
-      - Print & Publishing
+    df_DX = load_DX_bookings(filename_DX, sheetname_DX, start_row_DX)
+    df_DME = load_DME_bookings(filename_DME, sheetname_DME)
+    df = pd.concat([df_DME, df_DX])
 
-      The following bookings types are used
-      - ASV
-      - Total Subscription Attrition
-      - Consulting (I do not believe this hits deferred revenue) so we drop this
+    # Now we need to melt the dataframe so that the columns for each quarter are in one row
+    df = pd.melt(df, id_vars = ['BU', 'segment', 'geo', 'region', 'country'],
+                 value_vars = ['Q1_2021', 'Q2_2021', 'Q3_2021', 'Q4_2021'],
+                 var_name = 'Quarter')
 
-      -NOTE: As per Karen on 6/7/20, we need to add 'Premiere Support' to the ASV totals to get ours to match hers
+    return df
+
+def load_DME_bookings(filename, sheetname):
+
+    df_DME = pd.read_excel(filename, sheetname)
+
+    df_DME = df_DME.rename(columns={'Metrics': 'metrics',
+                            'Profit center': 'profit_center',
+                            'Market Area': 'market_area',
+                            'Market Segement': 'segment',
+                            'Q1 2021':'Q1_2021',
+                            'Q2 2021':'Q2_2021',
+                            'Q3 2021':'Q3_2021',
+                            'Q4 2021':'Q4_2021'
+                            })
+
+    # Drop the columns that we will not use
+    df_DME = df_DME.drop(columns = ['segment', 'GTM', '2021'])
+
+    # only want the Net ACV bookings
+    df_DME = df_DME[df_DME['metrics']=='Net ACV']
+
+    # ADJUSTING THE profit_center to not double count numbers
+    # creating the BU_ID
+    df_DME['BU_id'] =  df_DME['profit_center'].apply(lambda st: st[0:st.find("-")])
+    df_DME['BU_segment'] = df_DME['profit_center'].apply(lambda st: st[st.find("-")+1:])
+
+    df_DME['BU_id'] = df_DME['BU_id'].str.strip()
+    df_DME['BU_segment'] = df_DME['BU_segment'].str.strip()
+
+    list_BU_keepers = ['EB10', 'EB15']
+    df_DME = df_DME[df_DME['BU_id'].isin(list_BU_keepers)]
+
+    # NOW WORKING ON GEO, REGION and MARKET AREA
+    # identify the characters in a string
+    df_DME['in_parens'] =  df_DME['market_area'].apply(lambda st: st[st.find("(")+1:st.find(")")])
+
+    df_DME['market_area'] = df_DME['market_area'].apply(lambda st: st[0:st.find("(")-1])
+
+    df_DME['pc_ID'] = df_DME['profit_center'].apply(lambda st: st[0:st.find('-')])
+    df_DME['pc_descr'] = df_DME['profit_center'].apply(lambda st: st[st.find('-')+1:])
+
+    df_DME['geo'] = df_DME[df_DME['in_parens']=='G']['market_area']
+    df_DME['geo'] =df_DME['geo'].ffill()
+
+    df_DME['region'] = df_DME[df_DME['in_parens']=='R']['market_area']
+    df_DME['region'] = df_DME['region'].ffill()
+
+    # filter to just include market area
+    df_DME = df_DME[df_DME['in_parens']=='MA'].copy()
+
+    # drop unnecessary columns and reorder the columns
+    df_DME = df_DME.drop(columns=['profit_center', 'in_parens' ])
+
+    # Rename pc_descr to be segment
+    df_DME.rename(columns = {'pc_descr': 'segment',
+                             'market_area':'country'}, inplace=True)
+
+    # Add the BU
+    df_DME['BU'] = 'Digital Media'
+
+    # We need to remove the segment data: it is not included in the DME bookings
+    df_DME = df_DME.groupby(by = ['BU', 'segment', 'geo', 'region', 'country']).sum()
+    df_DME = df_DME.reset_index()
+
+    df_DME = df_DME[['BU', 'segment', 'geo', 'region', 'country', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021']]
 
 
-    :param df_bookings:
-    :return:
-    '''
+    print('Done with the DME dataframe:')
+    print(df_DME.sum())
 
-    # #### This is not being done here, we have way too many different items in the 'bookings_type' field
-
-    # ###### The cell below shows samples of what is in the data. Removing one of the parenthesis will execute the code. (One at a time)
+    return df_DME
 
 
-    change_list = [
-        "Data & Insights",
-        "Customer Journey Management",
-        "Commerce",
-        "Content",
-        "Shared Marketing Cloud",
-        "AEM Other",
-        "Adobe  Video Solutions",
-    ]
+def load_DX_bookings(filename, sheetname, start_row):
+    df_DX = pd.read_excel(filename, sheetname, skiprows=start_row)
 
-    len(change_list)
 
-    new_BU = ["Experience Cloud"]
-    new_BU_list = new_BU * len(change_list)
+    df_DX = df_DX.rename(columns = {'Unnamed: 0': 'segment',
+                                    'Unnamed: 1': 'market_area',
+                                    'Unnamed: 2': 'profit_center',
+                                    'Q1 2021':'Q1_2021',
+                                    'Q2 2021':'Q2_2021',
+                                    'Q3 2021':'Q3_2021',
+                                    'Q4 2021':'Q4_2021'})
 
-    change_dict = dict(zip(change_list, new_BU_list))
-    print(change_dict)
+    df_DX = df_DX.drop(columns = ['segment', '2021'])
 
-    df_bookings["BU"] = df_bookings["BU"].replace(change_dict)
+    # identify the characters in a string
+    df_DX['in_parens'] =  df_DX['market_area'].apply(lambda st: st[st.find("(")+1:st.find(")")])
 
-    df_bookings["BU"].value_counts()
+    df_DX['market_area'] = df_DX['market_area'].apply(lambda st: st[0:st.find("(")-1])
 
-    # #### The countries now contain two fields that we need to change
-    # - UNKNOWN
-    # - AMER #
-    #
-    # These will be changed to United States
+    df_DX['pc_ID'] = df_DX['profit_center'].apply(lambda st: st[0:st.find('-')])
+    df_DX['pc_descr'] = df_DX['profit_center'].apply(lambda st: st[st.find('-')+1:])
 
-    df_bookings["country"] = df_bookings["country"].replace(
-        {"AMER #": "United States", "UNKNOWN": "United States"}
-    )
+    df_DX['geo'] = df_DX[df_DX['in_parens']=='G']['market_area']
+    df_DX['geo'] =df_DX['geo'].ffill()
 
-    df_bookings["country"].value_counts()
+    df_DX['region'] = df_DX[df_DX['in_parens']=='R']['market_area']
+    df_DX['region'] = df_DX['region'].ffill()
 
-    df_bookings["booking_type"].value_counts()
-    # df_bookings.columns
+    # filter to just include market area
+    df_DX = df_DX[df_DX['in_parens']=='MA'].copy()
 
-    # ##### For the booking_type we need to keep the following fields (and add them)
-    # - ASV
-    # - Total Subscription Attrition
-    # - Premier Support (This is a new requirement for Q2 2020)
-    #
-    # ###### Note: These get summed by their booking amount later in the program, so we don't need to do that here
-    #
-    # New bookings file is just Net Asv, so we no longer need to include permiere support
-    df_bookings = df_bookings[
-        df_bookings["booking_type"].isin(
-            ["Net ASV"]
-        )
-    ]
 
-    return df_bookings
+    # Adding BU and Segment information (all Exp Cloud)
+    df_DX['BU'] = 'Digital Experience'
+    df_DX['segment'] = 'Experience Cloud'
+
+    # drop unnecessary columns and reorder the columns
+    df_DX = df_DX[['BU', 'segment', 'geo', 'region', 'market_area', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021']]
+
+    # rename the market_area to be country
+    df_DX.rename(columns={'market_area': 'country'}, inplace=True)
+
+    # We need to remove the segment data: it is not included in the DME bookings
+    df_DX = df_DX.groupby(by = ['BU', 'segment', 'geo', 'region', 'country']).sum()
+    df_DX = df_DX.reset_index()
+
+    print('Done with the DX dataframe:')
+    print(df_DX.sum())
+
+    return df_DX
 
 
 def build_deferred_waterfall(df_billings):
@@ -1673,20 +1677,20 @@ def build_booking_periods(df_bookings, df_billings):
             (df_bookings["BU"] == this_BU) & (df_bookings["Currency"] == this_curr)
             ]
 
-        this_Q1 = this_slice[this_slice["Quarter"] == "Q1 2020"]
-        sum_Q1 = this_Q1["US_amount"].sum()
+        this_Q1 = this_slice[this_slice["Quarter"] == "Q1_2021"]
+        sum_Q1 = this_Q1["value"].sum()
         df_book_period["Q1"].loc[i] = sum_Q1
 
-        this_Q2 = this_slice[this_slice["Quarter"] == "Q2 2020"]
-        sum_Q2 = this_Q2["US_amount"].sum()
+        this_Q2 = this_slice[this_slice["Quarter"] == "Q2_2021"]
+        sum_Q2 = this_Q2["value"].sum()
         df_book_period["Q2"].loc[i] = sum_Q2
 
-        this_Q3 = this_slice[this_slice["Quarter"] == "Q3 2020"]
-        sum_Q3 = this_Q3["US_amount"].sum()
+        this_Q3 = this_slice[this_slice["Quarter"] == "Q3_2021"]
+        sum_Q3 = this_Q3["value"].sum()
         df_book_period["Q3"].loc[i] = sum_Q3
 
-        this_Q4 = this_slice[this_slice["Quarter"] == "Q4 2020"]
-        sum_Q4 = this_Q4["US_amount"].sum()
+        this_Q4 = this_slice[this_slice["Quarter"] == "Q4_2021"]
+        sum_Q4 = this_Q4["value"].sum()
         df_book_period["Q4"].loc[i] = sum_Q4
 
     df_book_period.head(30)
@@ -1994,13 +1998,27 @@ def process_type_A(config_dict, df):
     return return_A_dict
 
 def clean_curr_and_zeros(df, config_dict):
-    # Removing currencies with less than n entries
+    # Removing currencies with less than n entries or that we have no information on
+    banned_curr = config_dict['curr_banned']
     vc = df["curr"].value_counts()
     keep_these = vc.values > 20
     keep_curr = vc[keep_these]
     list_keepers = keep_curr.index
     remove_these = vc[vc.values <= 20].index
+
+    #Adding banned currencies to the remove_these list
+    for curr in banned_curr:
+        if curr not in remove_these:
+            remove_these.append(curr)
+
     model_dict = {"curr_removed": list(vc[remove_these].index)}
+
+    #remove the banned currencies from the keepers list
+    for curr in banned_curr:
+        if curr in list_keepers:
+            list_keepers.pop(curr)
+    print('List of currencies kept')
+    print(list_keepers)
 
     df = df[df["curr"].isin(list_keepers)]
 
