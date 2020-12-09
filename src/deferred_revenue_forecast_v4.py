@@ -196,55 +196,7 @@ df_book_period = convert_bookings_to_DC(df_book_period, df_FX_fwds)
 #  - reporting
 """
 df_fcst = configure_df_fcst(df_billings, df_cal, config_dict)
-'''
-# creating the list of historical bill periods
-v_BU = df_billings["BU"].copy()
-v_curr = df_billings["curr"].copy()
-v_both = v_BU + v_curr
-v_unique = v_both.unique()
 
-v_un_BU = [sub[:-3] for sub in v_unique]
-v_un_curr = [sub[-3:] for sub in v_unique]
-
-list_future_periods = config_dict['list_future_periods']
-
-# creating the vectors for the future billings dataframe
-v_BU_2_df = []
-v_curr_2_df = []
-v_period_2_df = []
-
-for i in range(len(v_un_BU)):
-    this_BU = v_un_BU[i]
-    this_curr = v_un_curr[i]
-
-    for period in list_future_periods:
-        v_BU_2_df.append(this_BU)
-        v_curr_2_df.append(this_curr)
-        v_period_2_df.append(period)
-
-print("This is the length of the vectors: ", len(v_BU_2_df))
-
-# ##### Creating a list of the columns that we need to use in the df_billings dataframe (They contain document currency billings)
-
-list_all_columns = df_billings.columns
-
-list_keepers = []
-for i in list_all_columns:
-
-    if i[-2:] == "DC":
-        list_keepers.append(i)
-
-# ##### Creating the df_fcst dataframe with every currency, BU and period we need
-df_fcst = pd.DataFrame({"curr": v_curr_2_df, "BU": v_BU_2_df, "period": v_period_2_df})
-
-#  Adding the columns we need to populate (list_keepers)
-
-for col in list_keepers:
-    df_fcst[col] = 0
-
-df_fcst = df_fcst.merge(df_cal, how="left", left_on="period", right_on="period_match")
-df_fcst.drop(["period_match"], axis=1, inplace=True)
-'''
 # ### The functions below create the billings forecast by looking up the historical billings and having them renew
 # NOTE: The monthly billings are using a linear regression model on the monthly billings / weeks in the month
 
