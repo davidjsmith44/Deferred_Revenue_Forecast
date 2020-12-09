@@ -60,26 +60,26 @@ def calculate_percentages(df):
 
 def process_sunburst_dataframes(df):
 
-    df_2019 = df[df["period"].str.match("2020")]
+    df_2020 = df[df["period"].str.match("2020")]
     df2 = (
-        df_2019.set_index(["BU", "curr", "period"])
+        df_2020.set_index(["BU", "curr", "period"])
         .stack()
         .reset_index(name="Val")
         .rename(columns={"level_1": "X"})
     )
 
-    df_2019_US = df2[df2["level_3"].str.contains("_US")].copy()
-    df_2019_US["curr"] = df_2019_US["curr"].astype("string")
-    df_2019_US["BU"] = df_2019_US["BU"].astype("string")
-    df_2019_US["period"] = df_2019_US["period"].astype("string")
-    df_2019_US["level_3"] = df_2019_US["level_3"].astype("string")
-    df_2019_US.rename(columns={"level_3": "type"}, inplace=True)
+    df_2020_US = df2[df2["level_3"].str.contains("_US")].copy()
+    df_2020_US["curr"] = df_2020_US["curr"].astype("string")
+    df_2020_US["BU"] = df_2020_US["BU"].astype("string")
+    df_2020_US["period"] = df_2020_US["period"].astype("string")
+    df_2020_US["level_3"] = df_2020_US["level_3"].astype("string")
+    df_2020_US.rename(columns={"level_3": "type"}, inplace=True)
 
     # possibly remove period and sum all others
-    df_2019_gb = df_2019_US.groupby(["BU", "curr", "type"]).sum()
-    df_2019_gb = df_2019_gb[df_2019_gb["Val"] > 0]
+    df_2020_gb = df_2020_US.groupby(["BU", "curr", "type"]).sum()
+    df_2020_gb = df_2020_gb[df_2020_gb["Val"] > 0]
 
-    df = df_2019_gb.copy()
+    df = df_2020_gb.copy()
 
     df = calculate_percentages(df)
     df = df.reset_index()

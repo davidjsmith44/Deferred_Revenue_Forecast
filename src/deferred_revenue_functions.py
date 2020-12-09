@@ -237,8 +237,20 @@ def convert_fcst(df_fcst, df_FX_rates, list_columns, new_columns):
 
 
 def merge_bookings_to_fcst(df_book_period, df_fcst):
-    dc_list = ["P10_DC", "P11_DC", "P12_DC"]
-    us_list = ["P10", "P11", "P12"]
+
+    #TODO: Fix this bomb here and put into config
+
+    #Below clears out any periods and quarters that need to be dropped from the df_book_period file
+    #If we are looking at a quarter in the future
+    dc_list = ["P01_DC", "P02_DC", "P03_DC",
+                "P04_DC", "P05_DC", "P06_DC",
+                "P07_DC", "P08_DC", "P09_DC",
+                "P10_DC", "P11_DC", "P12_DC"
+               ]
+    us_list = ["P01", "P02", "P03",
+               "P04", "P05", "P06",
+               "P07", "P08", "P09",
+               "P10", "P11", "P12"]
 
     df_temp_book_period = df_book_period.drop(
         columns=[
@@ -246,33 +258,19 @@ def merge_bookings_to_fcst(df_book_period, df_fcst):
             "Q2",
             "Q3",
             "Q4",
-            "P01",
-            "P02",
-            "P03",
-            "P04",
-            "P05",
-            "P06",
-            "P01_DC",
-            "P02_DC",
-            "P03_DC",
-            "P04_DC",
-            "P05_DC",
-            "P06_DC",
-            "P07_DC",
-            "P08_DC",
-            "P09_DC",
-            "FX_fwd_rate",
+            "FX_fwd_rate"
         ]
     ).copy()
 
+    #df_temp_book_period = df_book_period.copy()
     df_DC = df_temp_book_period.copy()
     df_US = df_temp_book_period.copy()
 
     df_DC = df_DC.drop(columns=us_list)
     df_US = df_US.drop(columns=dc_list)
 
-    df_DC_melt = pd.melt(df_DC, id_vars=["BU", "curr"])
-    df_US_melt = pd.melt(df_US, id_vars=["BU", "curr"])
+    df_DC_melt = pd.melt(df_DC, id_vars=["segment", "curr"])
+    df_US_melt = pd.melt(df_US, id_vars=["segment", "curr"])
 
     df_DC_melt.rename(
         columns={"variable": "period", "value": "book_1Y_DC"}, inplace=True
@@ -281,19 +279,24 @@ def merge_bookings_to_fcst(df_book_period, df_fcst):
         columns={"variable": "period", "value": "book_1Y_US"}, inplace=True
     )
 
-    df_DC_melt["period"] = df_DC_melt["period"].str.replace("P", "2020-")
+    df_DC_melt["period"] = df_DC_melt["period"].str.replace("P", "2021-")
     df_DC_melt["period"] = df_DC_melt["period"].str.replace("_DC", "")
-    df_US_melt["period"] = df_US_melt["period"].str.replace("P", "2020-")
+    df_US_melt["period"] = df_US_melt["period"].str.replace("P", "2021-")
     df_US_melt["period"] = df_US_melt["period"].str.replace("_US", "")
 
     # reset index
-    df_DC_melt.set_index(["BU", "curr", "period"], inplace=True)
+    df_DC_melt.set_index(["segment", "curr", "period"], inplace=True)
 
-    df_US_melt.set_index(["BU", "curr", "period"], inplace=True)
+    df_US_melt.set_index(["segment", "curr", "period"], inplace=True)
 
     df_melted = df_DC_melt.join(df_US_melt, how="left")
 
     df_fcst.set_index(["BU", "curr", "period"], inplace=True)
+    print('Below is the df_fcst')
+    print(df_fcst.head(10))
+
+    print('Below is the df_melted dataframe')
+    print(df_melted.head(10))
 
     df_fcst = df_fcst.join(df_melted, how="left")
     df_fcst.fillna(0, inplace=True)
@@ -860,6 +863,12 @@ def load_bookings(config_dict):
                  value_vars = ['Q1_2021', 'Q2_2021', 'Q3_2021', 'Q4_2021'],
                  var_name = 'Quarter')
 
+    # Extra white space in the FP&A files
+    df['BU'] = df['BU'].str.strip()
+    df['segment'] = df['segment'].str.strip()
+    df['geo'] = df['geo'].str.strip()
+    df['region'] = df['region'].str.strip()
+    df['country'] = df['country'].str.strip()
     return df
 
 def load_DME_bookings(filename, sheetname):
@@ -1623,7 +1632,10 @@ def build_booking_periods(df_bookings, df_billings):
             For example: P1 = 25%, P2 = 30%, P3 = 45% such that the sum is equal to the total quarterly billings last year
         Cleaning up the dataframe by dropping the columns we no longer need
     '''
-    list_BUs = df_bookings["BU"].unique()
+    #BELOW WAS FOR WHEN KAREN DID THE BILLINGS AND WE HAD BU as Creative, Doc Cloud, etc
+    #list_BUs = df_bookings["BU"].unique()
+    # this is now called segment
+    list_BUs = df_bookings["segment"].unique()
     list_curr = df_bookings["Currency"].unique()
 
     print("This is the list of BUs in the bookings dataframe: ", list_BUs)
@@ -1642,7 +1654,7 @@ def build_booking_periods(df_bookings, df_billings):
     l_zero = np.zeros(len(l_BU))
 
     data = {
-        "BU": l_BU,
+        "segment": l_BU,
         "curr": l_curr,
         "Q1": l_zero,
         "Q2": l_zero,
@@ -1670,11 +1682,11 @@ def build_booking_periods(df_bookings, df_billings):
 
     # Fills in the df_book_period dataframe with the quarterly bookings numbers for each BU and currency
     # fill in the quarters
-    for i in range(len(df_book_period["BU"])):
-        this_BU = df_book_period["BU"][i]
+    for i in range(len(df_book_period["segment"])):
+        this_segment = df_book_period["segment"][i]
         this_curr = df_book_period["curr"][i]
         this_slice = df_bookings[
-            (df_bookings["BU"] == this_BU) & (df_bookings["Currency"] == this_curr)
+            (df_bookings["segment"] == this_segment) & (df_bookings["Currency"] == this_curr)
             ]
 
         this_Q1 = this_slice[this_slice["Quarter"] == "Q1_2021"]
@@ -1703,11 +1715,13 @@ def build_booking_periods(df_bookings, df_billings):
     # ##### Creating lists of periods and quarters needed to fill out the df_book_period dataframe
     # list of quarters for the percentages
 
-    list_q3 = ["2020-07", "2020-08", "2020-09"]
-    list_q4 = ["2019-10", "2019-11", "2019-12"]
-    list_q1 = ["2020-01", "2020-02", "2020-03"]
-    list_q2 = ["2020-04", "2020-05", "2020-06"]
+    #TODO: Add these to the config file!!!
+    list_q1 = ["2021-01", "2021-02", "2021-03"]
+    list_q2 = ["2021-04", "2021-05", "2021-06"]
+    list_q3 = ["2021-07", "2021-08", "2021-09"]
+    list_q4 = ["2021-10", "2021-11", "2021-12"]
 
+    # list periods should be the year prior periods. This is what gets looked up in df_billiings
     list_periods = [
         "2020-01",
         "2020-02",
@@ -1718,9 +1732,9 @@ def build_booking_periods(df_bookings, df_billings):
         "2020-07",
         "2020-08",
         "2020-09",
-        "2019-10",
-        "2019-11",
-        "2019-12",
+        "2020-10",
+        "2020-11",
+        "2020-12",
     ]
 
     list_p_headers = [
@@ -1755,13 +1769,13 @@ def build_booking_periods(df_bookings, df_billings):
 
     # ##### adding the booking periods to the dataframe. The bookings are split into periods based on last years percentage of 1 year deferred billings within the quarter.
     # For example: P1 = 25%, P2 = 30%, P3 = 45% such that the sum is equal to the total quarterly billings last year
-    for i in range(len(df_book_period["BU"])):
+    for i in range(len(df_book_period["segment"])):
 
-        this_BU = df_book_period["BU"][i]
+        this_segment = df_book_period["segment"][i]
         this_curr = df_book_period["curr"][i]
 
         this_slice = df_billings[
-            (df_billings["BU"] == this_BU) & (df_billings["curr"] == this_curr)
+            (df_billings["BU"] == this_segment) & (df_billings["curr"] == this_curr)
             ]
 
         for j in range(len(list_periods)):
