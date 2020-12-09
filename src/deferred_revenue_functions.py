@@ -1752,20 +1752,6 @@ def build_booking_periods(df_bookings, df_billings):
         "P12",
     ]
 
-    list_q_headers = [
-        "Q1",
-        "Q1",
-        "Q1",
-        "Q2",
-        "Q2",
-        "Q2",
-        "Q3",
-        "Q3",
-        "Q3",
-        "Q4",
-        "Q4",
-        "Q4",
-    ]
 
     # ##### adding the booking periods to the dataframe. The bookings are split into periods based on last years percentage of 1 year deferred billings within the quarter.
     # For example: P1 = 25%, P2 = 30%, P3 = 45% such that the sum is equal to the total quarterly billings last year
@@ -1781,7 +1767,6 @@ def build_booking_periods(df_bookings, df_billings):
         for j in range(len(list_periods)):
             this_period = list_periods[j]
             this_header = list_p_headers[j]
-            this_quarter = list_q_headers[j]
             this_P_slice = this_slice[this_slice["period"] == this_period]
             df_book_period.loc[[i], [this_header]] = this_P_slice["deferred_1Y_DC"].sum()
 
@@ -1844,8 +1829,6 @@ def build_booking_periods(df_bookings, df_billings):
     df_book_period.drop(
         ["bill_Q1_sum", "bill_Q2_sum", "bill_Q3_sum", "bill_Q4_sum"], axis=1, inplace=True
     )
-
-
 
     return df_book_period
 
