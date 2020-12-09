@@ -18,6 +18,7 @@ df = import_thing["final"]
 df_wf = import_thing["waterfall"]
 list_currencies = df["curr"].unique()
 list_BUs = df["BU"].unique()
+print(df.tail(20))
 df["monthly_periods"] = df["deferred_1M_DC"] / df["Period_Weeks"]
 
 # Functions for the sunburst charts

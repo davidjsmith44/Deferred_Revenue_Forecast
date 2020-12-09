@@ -269,8 +269,8 @@ def merge_bookings_to_fcst(df_book_period, df_fcst):
     df_DC = df_DC.drop(columns=us_list)
     df_US = df_US.drop(columns=dc_list)
 
-    df_DC_melt = pd.melt(df_DC, id_vars=["segment", "curr"])
-    df_US_melt = pd.melt(df_US, id_vars=["segment", "curr"])
+    df_DC_melt = pd.melt(df_DC, id_vars=["BU", "curr"])
+    df_US_melt = pd.melt(df_US, id_vars=["BU", "curr"])
 
     df_DC_melt.rename(
         columns={"variable": "period", "value": "book_1Y_DC"}, inplace=True
@@ -285,9 +285,9 @@ def merge_bookings_to_fcst(df_book_period, df_fcst):
     df_US_melt["period"] = df_US_melt["period"].str.replace("_US", "")
 
     # reset index
-    df_DC_melt.set_index(["segment", "curr", "period"], inplace=True)
+    df_DC_melt.set_index(["BU", "curr", "period"], inplace=True)
 
-    df_US_melt.set_index(["segment", "curr", "period"], inplace=True)
+    df_US_melt.set_index(["BU", "curr", "period"], inplace=True)
 
     df_melted = df_DC_melt.join(df_US_melt, how="left")
 
@@ -859,13 +859,13 @@ def load_bookings(config_dict):
     df = pd.concat([df_DME, df_DX])
 
     # Now we need to melt the dataframe so that the columns for each quarter are in one row
-    df = pd.melt(df, id_vars = ['BU', 'segment', 'geo', 'region', 'country'],
+    df = pd.melt(df, id_vars = ['BU', 'geo', 'region', 'country'],
                  value_vars = ['Q1_2021', 'Q2_2021', 'Q3_2021', 'Q4_2021'],
                  var_name = 'Quarter')
 
     # Extra white space in the FP&A files
     df['BU'] = df['BU'].str.strip()
-    df['segment'] = df['segment'].str.strip()
+    #df['segment'] = df['segment'].str.strip()
     df['geo'] = df['geo'].str.strip()
     df['region'] = df['region'].str.strip()
     df['country'] = df['country'].str.strip()
@@ -923,18 +923,19 @@ def load_DME_bookings(filename, sheetname):
     # drop unnecessary columns and reorder the columns
     df_DME = df_DME.drop(columns=['profit_center', 'in_parens' ])
 
-    # Rename pc_descr to be segment
-    df_DME.rename(columns = {'pc_descr': 'segment',
+    # Rename pc_descr to be BU
+    ### THIS WAS THE ERROR. it was renamed to segment
+    df_DME.rename(columns = {'pc_descr': 'BU',
                              'market_area':'country'}, inplace=True)
 
     # Add the BU
-    df_DME['BU'] = 'Digital Media'
+    #df_DME['BU'] = 'Digital Media'
 
     # We need to remove the segment data: it is not included in the DME bookings
-    df_DME = df_DME.groupby(by = ['BU', 'segment', 'geo', 'region', 'country']).sum()
+    df_DME = df_DME.groupby(by = ['BU', 'geo', 'region', 'country']).sum()
     df_DME = df_DME.reset_index()
 
-    df_DME = df_DME[['BU', 'segment', 'geo', 'region', 'country', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021']]
+    df_DME = df_DME[['BU', 'geo', 'region', 'country', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021']]
 
 
     print('Done with the DME dataframe:')
@@ -976,17 +977,18 @@ def load_DX_bookings(filename, sheetname, start_row):
 
 
     # Adding BU and Segment information (all Exp Cloud)
-    df_DX['BU'] = 'Digital Experience'
-    df_DX['segment'] = 'Experience Cloud'
+    # THIS WAS WHERE THE ERROR WAS
+    #df_DX['segment'] = 'Digital Experience'
+    df_DX['BU'] = 'Experience Cloud'
 
     # drop unnecessary columns and reorder the columns
-    df_DX = df_DX[['BU', 'segment', 'geo', 'region', 'market_area', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021']]
+    df_DX = df_DX[['BU', 'geo', 'region', 'market_area', 'Q1_2021','Q2_2021', 'Q3_2021', 'Q4_2021']]
 
     # rename the market_area to be country
     df_DX.rename(columns={'market_area': 'country'}, inplace=True)
 
     # We need to remove the segment data: it is not included in the DME bookings
-    df_DX = df_DX.groupby(by = ['BU', 'segment', 'geo', 'region', 'country']).sum()
+    df_DX = df_DX.groupby(by = ['BU', 'geo', 'region', 'country']).sum()
     df_DX = df_DX.reset_index()
 
     print('Done with the DX dataframe:')
@@ -1635,7 +1637,7 @@ def build_booking_periods(df_bookings, df_billings):
     #BELOW WAS FOR WHEN KAREN DID THE BILLINGS AND WE HAD BU as Creative, Doc Cloud, etc
     #list_BUs = df_bookings["BU"].unique()
     # this is now called segment
-    list_BUs = df_bookings["segment"].unique()
+    list_BUs = df_bookings["BU"].unique()
     list_curr = df_bookings["Currency"].unique()
 
     print("This is the list of BUs in the bookings dataframe: ", list_BUs)
@@ -1654,7 +1656,7 @@ def build_booking_periods(df_bookings, df_billings):
     l_zero = np.zeros(len(l_BU))
 
     data = {
-        "segment": l_BU,
+        "BU": l_BU,
         "curr": l_curr,
         "Q1": l_zero,
         "Q2": l_zero,
@@ -1682,11 +1684,11 @@ def build_booking_periods(df_bookings, df_billings):
 
     # Fills in the df_book_period dataframe with the quarterly bookings numbers for each BU and currency
     # fill in the quarters
-    for i in range(len(df_book_period["segment"])):
-        this_segment = df_book_period["segment"][i]
+    for i in range(len(df_book_period["BU"])):
+        this_BU = df_book_period["BU"][i]
         this_curr = df_book_period["curr"][i]
         this_slice = df_bookings[
-            (df_bookings["segment"] == this_segment) & (df_bookings["Currency"] == this_curr)
+            (df_bookings["BU"] == this_BU) & (df_bookings["Currency"] == this_curr)
             ]
 
         this_Q1 = this_slice[this_slice["Quarter"] == "Q1_2021"]
@@ -1755,13 +1757,13 @@ def build_booking_periods(df_bookings, df_billings):
 
     # ##### adding the booking periods to the dataframe. The bookings are split into periods based on last years percentage of 1 year deferred billings within the quarter.
     # For example: P1 = 25%, P2 = 30%, P3 = 45% such that the sum is equal to the total quarterly billings last year
-    for i in range(len(df_book_period["segment"])):
+    for i in range(len(df_book_period["BU"])):
 
-        this_segment = df_book_period["segment"][i]
+        this_BU = df_book_period["BU"][i]
         this_curr = df_book_period["curr"][i]
 
         this_slice = df_billings[
-            (df_billings["BU"] == this_segment) & (df_billings["curr"] == this_curr)
+            (df_billings["BU"] == this_BU) & (df_billings["curr"] == this_curr)
             ]
 
         for j in range(len(list_periods)):

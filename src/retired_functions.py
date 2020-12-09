@@ -71,7 +71,7 @@ def load_bookings(config_dict):
 def clean_bookings(df_bookings):
     '''
     The pivot table Karen is using only look at 4 EBUs
-    - Creative
+      - Creative
       - Document Cloud
       - Digital Experience
       - Print & Publishing
