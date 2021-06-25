@@ -17,7 +17,8 @@
 #  - Bookings Forecast: contains the most recent FP&A net new booking forecast (usually only one fiscal year included)
 
 #
-# 2. Process the billings data into a dataframe that includes the BU, currency, period and every type of billings based on it's rebill frequency
+# 2. Process the billings data into a dataframe that includes the BU, currency, period and every type of billings
+#    based on it's rebill frequency
 #
 # 3. Process the bookings information
 #
@@ -38,7 +39,7 @@ from scipy.interpolate import interp1d, griddata
 import json
 from deferred_revenue_functions import *
 
-from src.deferred_revenue_functions import classify_no_POB
+#from src.deferred_revenue_functions import classify_no_POB
 
 plt.style.use("ggplot")
 
@@ -241,7 +242,7 @@ with open(int_output_5_fname, "wb") as f:
 #
 #  ##### I will need to create a 12 month forward vector for each currency
 #   - First add 'is_direct' field to the df_FX_rates DataFrame
-
+print(df_FX_rates.head(80))
 df_FX_rates = interp_FX_fwds(df_FX_rates)
 
 
@@ -398,7 +399,8 @@ df_all = df_all.sort_index()
 df_wf = df_wf.sort_index()
 
 # #### Sending this data over to excel as a check
-with pd.ExcelWriter("/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2020_p12/processed/final/output.xlsx") as writer:
+#with pd.ExcelWriter("/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2021_p03/processed/final/output.xlsx") as writer:
+with pd.ExcelWriter(config_dict['output_dir']['final']+"output.xlsx") as writer:
     df_wf_init.to_excel(writer, sheet_name="initial_waterfall")
     df_wf.to_excel(writer, sheet_name="billings_impact")
     df_all.to_excel(writer, sheet_name="combined")
@@ -421,7 +423,7 @@ saved_dict["waterfall"] = df_all
 saved_dict["bill_waterfall"] = df_wf
 saved_dict["initial_waterfall"] = df_wf_init
 
-pickle.dump(saved_dict, open("/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2020_p12/processed/final/final_forecast_2.p", "wb"))
+pickle.dump(saved_dict, open(config_dict["output_dir"]["final"] + "final_forecast_2.p", "wb"))
 
 # Merging the df_fcst with the df_billings for easier charting?
 df_billings["is_forecast"] = 0
@@ -445,6 +447,6 @@ input_df_dict = {
     "as_performed": df_as_performed
 }
 
-pickle.dump(input_df_dict, open("/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2020_p12/processed/final_forecast3.p", "wb"))
+pickle.dump(input_df_dict, open(config_dict['output_dir']['final']+'final_forecast3.p', "wb"))
 
 

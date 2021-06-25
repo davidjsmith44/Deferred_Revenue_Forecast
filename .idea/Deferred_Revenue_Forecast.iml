@@ -2,9 +2,11 @@
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/deferred_dash_app/venv/lib/python3.7/site-packages/pandas/io/formats/templates" type="java-resource" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.8 (Deferred_Revenue_Forecast)" jdkType="Python SDK" />
+    <content url="file://$MODULE_DIR$/venv" />
+    <orderEntry type="jdk" jdkName="Python 3.8 (src) (2)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TemplatesService">

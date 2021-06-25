@@ -1,0 +1,90 @@
+{
+    "ADBE_cal": {
+        "direct_filename": "/Volumes/Treasury/Financial_Database/ADOBE_FINANCIAL_CALENDAR.xlsx",
+        "sheetname": "ADBE_cal"
+    },
+    "FX_forwards": {
+        "filename": "FX_forward_rates.xlsx",
+        "sheetname": "forward_data"
+    },
+    "FX_rates": {
+        "filename": "FX_data.xlsx",
+        "sheetname": "to_matlab"
+    },
+    "billings": {
+        "filename": "all_billings_inputs.xlsx",
+        "base_sheetname": "base_billings",
+        "type_A_sheetname": "type_A_no_config"
+    },
+    "bookings": {
+        "filename_DME": "DME_Bookings_FY21_Plan.xlsx",
+        "sheetname_DME": "Raw",
+        "filename_DX": "DX_Bookings_FY21_Plan.xlsx",
+        "sheetname_DX": "Sheet1",
+        "start_row_DX": 12
+    },
+    "curr_banned": [
+        "BMD",
+        "MXP",
+        "PLN"
+    ],
+    "curr_map": {
+        "filename": "currency_map.xlsx",
+        "sheetname": "curr_map"
+    },
+    "list_future_periods": [
+        "2021-04",
+        "2021-05",
+        "2021-06",
+        "2021-07",
+        "2021-08",
+        "2021-09",
+        "2021-10",
+        "2021-11",
+        "2021-12",
+        "2022-01",
+        "2022-02",
+        "2022-03"
+    ],
+    "path_to_data": "/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2021_p03/",
+    "output_dir": {
+        "intermediate": "/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2021_p03/processed/intermediate/",
+        "final": "/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2021_p03/processed/final/"
+    },
+    "deferred_workbook": {
+        "filename": "Q1'21 Rev Acctg Mgmt Workbook.xlsx",
+        "sheetname": "Deferred Revenue Forecast",
+        "skiprows": 5,
+        "keeper_rows": [
+            "Digital Media Total",
+            "Publishing Total",
+            "Digital Experience Total",
+            "Marketo Deferred",
+            "Magento Deferred",
+            "Grand Total inclusive of Magento/Marketo"
+        ],
+        "str_replace_from": [
+            "Magento Deferred",
+            "Marketo Deferred"
+        ],
+        "str_replace_to": "Digital Experience Total",
+        "drop_columns": [
+            "Major Product Config",
+            " Historical"
+        ]
+    },
+    "bookings_BU_mapping": {
+        "Creative": "Digital Media",
+        "Document Cloud": "Digital Media",
+        "DX Other": "Digital Experience",
+        "Experience Cloud": "Digital Experience",
+        "Print & Publishing": "Publishing"
+    },
+    "waterfall_BU_mapping": {
+        "Digital Experience Total": "Digital Experience",
+        "Digital Media Total": "Digital Media",
+        "Publishing Total": "Publishing"
+    },
+    "waterfall_drop": "Grand Total inclusive of Magento/Marketo",
+    "waterfall_initial_period": "2021-04"
+}

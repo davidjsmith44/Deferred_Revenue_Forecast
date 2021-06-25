@@ -25,6 +25,9 @@ def load_FX_data(config_dict):
     filename_FX = config_dict['path_to_data'] + config_dict['FX_rates']['filename']
     df = pd.read_excel(filename_FX, sheet_name=config_dict['FX_rates']['sheetname'])
 
+    # Some of the currencies will have a '#N/A Requesting Data...' message. Replace with np.nan
+    df = df.replace('#N/A Requesting Data...', np.nan)
+
     # some of the currencies do not contain forwards, so just filling across (as if no points)
     df = df.fillna(method='ffill', axis=1)
 
@@ -53,7 +56,7 @@ def load_curr_map(config_dict):
 
     # need to replace part of the strings in country that are in this report
     df["Country"] = df["Country"].str.replace(
-        "\(MA\)", "", case=False
+        "\(MA\)", "", case=False, regex=True
     )
     df["Country"] = df["Country"].str.strip()
 
@@ -1050,7 +1053,7 @@ def build_deferred_waterfall(df_billings):
             df_waterfall = pd.concat([df_waterfall, df_this_wf], sort=False)
 
     df_waterfall.reset_index(drop=True, inplace=True)
-
+    print(df_waterfall.head(30))
     return df_waterfall
 
 
@@ -1568,6 +1571,9 @@ def interp_FX_fwds(df_FX_rates):
 
     for index, row in df_FX_rates.iterrows():
         fwds = [row["Spot"], row["FWD_3M"], row["FWD_6M"], row["FWD_9M"], row["FWD_1Y"]]
+        print('Type of interp_time', type(interp_time))
+        print('type of fwd_times', type(fwd_times))
+        print('type of forwards', type(fwds))
         interp_fwds = np.interp(interp_time, fwd_times, fwds)
         for i in np.arange(len(new_cols)):
             df_FX_rates.loc[index, new_cols[i]] = interp_fwds[i]
@@ -1952,7 +1958,7 @@ def process_type_A(config_dict, df):
     print('len gb_a', len(gb_a))
     print('gb_a_keepers', len(gb_a_keepers))
     print('len df_a_no_config', len(gb_a_no_config))
-    print('Total USD Equivalent Billings of Type A with bad configs', gb_a_no_config.US_amount.sum())
+    print('Total USD Equivalent Billings of Type A with configs', gb_a_no_config.US_amount.sum())
 
     # ###### Grouping by the config type into gb_a_1Y, gb_a_2Y, gb_a_3y, gb_a_1M dataframes
     # Selecting monthly billings
@@ -2544,16 +2550,41 @@ def load_and_clean_init_waterfall(config_dict):
     keeper_rows = config_dict['deferred_workbook']['keeper_rows']
     df = df[df['External Reporting BU'].isin(keeper_rows)]
 
+    '''
+    Below was to account for Magento and Marketo deferred being listed separately. It is now in Digital Experience
+    
+    Below was in teh period_config under deferred_workbook:
+     "str_replace_from": [
+            "Magento Deferred",
+            "Marketo Deferred"
+        ],
+        "str_replace_to": "Digital Experience Total",
+    
     list_BU_changes = config_dict['deferred_workbook']["str_replace_from"]
     list_BU_new = config_dict['deferred_workbook']["str_replace_to"]
     for item in list_BU_changes:
         df["External Reporting BU"] = df["External Reporting BU"].str.replace(
             item, list_BU_new)
+    '''
+
+    '''
+     
+    Q2 2021: We now have Workfront, but it is included in the 'Grand Total incl. Workfront'
+    We need to add the difference between the 'Grand Total' and the 'Grand Total incl. Workfront" and add to
+    Digital Experience
+    BELOW IS A ONE TIME CHANGE THAT I WILL HAVE TO MAKE INTO THE DICTIONARY AT SOME POINT
+    
+    df.loc['Digital Experience Total'] = df.loc['Digital Experience Total'] + df.loc['Grand Total incl Workfront'] -
+        df.loc['Grant Total']
+    
+    
+    '''
+    df = df.replace('Workfront Total', 'Digital Experience Total')
 
 
     # Removing non-alphanumeric characters from column dates
     changed_columns = df.columns.str.replace("'", "_")
-    changed_columns = changed_columns.str.replace("+", "")
+    changed_columns = changed_columns.str.replace("+", "", regex=True)
     df.columns = changed_columns
 
     # Grouping by external reporting BU now that we have changed the BUs
@@ -2603,8 +2634,8 @@ def load_and_clean_init_waterfall(config_dict):
 
     # Changing the BUs to match billings and dropping the total row
     df = df.rename(index=config_dict['waterfall_BU_mapping'])
-    df = df.drop(config_dict['waterfall_drop'])
-
+    #df = df.drop(config_dict['waterfall_drop'])
+    print(df)
     return df
 
 def configure_df_fcst(df_billings, df_cal, config_dict):

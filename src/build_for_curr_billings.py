@@ -9,7 +9,7 @@ import numpy as np
 import pickle
 from openpyxl import load_workbook
 
-output_dict = pickle.load(open('../data/processed/final_forecast.p', 'rb'))
+output_dict = pickle.load(open('../data/Data_2021_p03/processed/final_forecast3.p', 'rb'))
 print(output_dict.keys())
 
 
@@ -30,7 +30,7 @@ def build_one_curr_history(this_curr, df):
 
     this_curr_df = this_curr_df[['period', 'is_forecast', 'deferred_3Y_DC', 'deferred_2Y_DC', 'deferred_1Y_DC',
                 'deferred_6M_DC', 'deferred_3M_DC', 'deferred_1M_DC',
-            'deferred_B_DC', 'service_DC', 'recognized_DC']]
+            'service_DC', 'recognized_DC']]
     this_curr_df['Total_Billings'] = this_curr_df.sum(axis=1)
     this_curr_df['To_Revenue_in_1M_$'] = this_curr_df['deferred_1M_DC'] + this_curr_df['service_DC'] + this_curr_df['recognized_DC']
 

@@ -1,0 +1,122 @@
+{
+    "ADBE_cal": {
+        "direct_filename": "../Data/ADOBE_FINANCIAL_CALENDAR.xlsx",
+        "sheetname": "ADBE_cal"
+    },
+    "FX_forwards": {
+        "filename": "FX_forward_rates.xlsx",
+        "sheetname": "forward_data"
+    },
+    "FX_rates": {
+        "filename": "FX_data.xlsx",
+        "sheetname": "to_matlab"
+    },
+    "billings": {
+        "filename": "all_billings_weekly.xlsx",
+        "base_sheetname": "base_billings",
+        "type_A_sheetname": "type_A_no_config"
+    },
+    "bookings": {
+        "filename_DME": "DME_Bookings_FY21_Plan.xlsx",
+        "sheetname_DME": "Raw",
+        "filename_DX": "DX_Bookings_FY21_Plan.xlsx",
+        "sheetname_DX": "Sheet1",
+        "start_row_DX": 12
+    },
+    "curr_banned": [
+        "BMD",
+        "MXP",
+        "PLN"
+    ],
+    "curr_map": {
+        "filename": "currency_map.xlsx",
+        "sheetname": "curr_map"
+    },
+    "list_future_weeks": [
+        "2021-15",
+        "2021-16",
+        "2021-17",
+        "2021-18",
+        "2021-19",
+        "2021-20",
+        "2021-21",
+        "2021-22",
+        "2021-23",
+        "2021-24",
+        "2021-25",
+        "2021-26",
+        "2021-27",
+        "2021-28",
+        "2021-29",
+        "2021-30",
+        "2021-31",
+        "2021-32",
+        "2021-33",
+        "2021-34",
+        "2021-35",
+        "2021-36",
+        "2021-37",
+        "2021-38",
+        "2021-39",
+        "2021-40",
+        "2021-41",
+        "2021-42",
+        "2021-43",
+        "2021-44",
+        "2021-45",
+        "2021-46",
+        "2021-47",
+        "2021-48",
+        "2021-49",
+        "2021-50",
+        "2021-51",
+        "2021-52",
+        "2021-53",
+        "2022-01",
+        "2022-02",
+        "2022-03",
+        "2022-04",
+        "2022-05",
+        "2022-06",
+        "2022-07",
+        "2022-08",
+        "2022-09",
+        "2022-10",
+        "2022-11",
+        "2022-12",
+        "2022-13"
+    ],
+    "path_to_data": "../Data/Data_2021_p03/",
+    "output_dir": {
+        "intermediate": "../Data/Data_2021_p03/processed/intermediate/",
+        "final": "../Data/processed/final/"
+    },
+    "deferred_workbook": {
+        "filename": "Q1'21 Rev Acctg Mgmt Workbook.xlsx",
+        "sheetname": "Deferred Revenue Forecast",
+        "skiprows": 5,
+        "keeper_rows": [
+            "Digital Media Total",
+            "Publishing & AdCloud Total",
+            "Digital Experience Total",
+            "Workfront Total"
+        ],
+        "drop_columns": [
+            "Major Product Config",
+            " Historical"
+        ]
+    },
+    "bookings_BU_mapping": {
+        "Creative": "Digital Media",
+        "Document Cloud": "Digital Media",
+        "DX Other": "Digital Experience",
+        "Experience Cloud": "Digital Experience",
+        "Print & Publishing": "Publishing & AdCloud"
+    },
+    "waterfall_BU_mapping": {
+        "Digital Experience Total": "Digital Experience",
+        "Digital Media Total": "Digital Media",
+        "Publishing & AdCloud Total": "Publishing & AdCloud"
+    },
+    "waterfall_initial_period": "2021-04"
+}

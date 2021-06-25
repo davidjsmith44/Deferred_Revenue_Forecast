@@ -13,7 +13,8 @@ import pickle
 
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 # loading up my data from deferred revenue
-import_thing = pickle.load(open('/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2020_p12/processed/final_forecast3.p', "rb"))
+#import_thing = pickle.load(open('/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2020_p12/processed/final_forecast3.p', "rb"))
+import_thing = pickle.load(open('../Data/Data_2021_p06/processed/final_forecast3.p', "rb"))
 df = import_thing["final"]
 df_wf = import_thing["waterfall"]
 list_currencies = df["curr"].unique()
@@ -61,30 +62,32 @@ def calculate_percentages(df):
 
 def process_sunburst_dataframes(df):
 
-    df_2020 = df[df["period"].str.match("2020")]
+    df_curr_year = df[df["period"].str.match("2021")]
     df2 = (
-        df_2020.set_index(["BU", "curr", "period"])
+        df_curr_year.set_index(["BU", "curr", "period"])
         .stack()
         .reset_index(name="Val")
         .rename(columns={"level_1": "X"})
     )
 
-    df_2020_US = df2[df2["level_3"].str.contains("_US")].copy()
-    df_2020_US["curr"] = df_2020_US["curr"].astype("string")
-    df_2020_US["BU"] = df_2020_US["BU"].astype("string")
-    df_2020_US["period"] = df_2020_US["period"].astype("string")
-    df_2020_US["level_3"] = df_2020_US["level_3"].astype("string")
-    df_2020_US.rename(columns={"level_3": "type"}, inplace=True)
+    df_curr_year_US = df2[df2["level_3"].str.contains("_US")].copy()
+    df_curr_year_US["curr"] = df_curr_year_US["curr"].astype("string")
+    df_curr_year_US["BU"] = df_curr_year_US["BU"].astype("string")
+    df_curr_year_US["period"] = df_curr_year_US["period"].astype("string")
+    df_curr_year_US["level_3"] = df_curr_year_US["level_3"].astype("string")
+    df_curr_year_US.rename(columns={"level_3": "type"}, inplace=True)
 
     # possibly remove period and sum all others
-    df_2020_gb = df_2020_US.groupby(["BU", "curr", "type"]).sum()
-    df_2020_gb = df_2020_gb[df_2020_gb["Val"] > 0]
+    df_curr_year_gb = df_curr_year_US.groupby(["BU", "curr", "type"]).sum()
+    df_curr_year_gb = df_curr_year_gb[df_curr_year_gb["Val"] > 0]
 
-    df = df_2020_gb.copy()
+    df = df_curr_year_gb.copy()
 
     df = calculate_percentages(df)
     df = df.reset_index()
-
+    print('Inside the process sunburst dataframe function')
+    print(df.head(10))
+    print(df.tail(10))
     return df
 
 
@@ -117,7 +120,7 @@ app.layout = html.Div(
                         html.Div(
                             [
                                 html.H4(
-                                    children="USD Equivalent of 2020 Billings by Enterprice BU, Document Currency and Rebill Frequency",
+                                    children="USD Equivalent of 2021 Billings by Enterprice BU, Document Currency and Rebill Frequency",
                                     style={"text-align": "center"},
                                 ),
                             ]
