@@ -958,6 +958,8 @@ def load_DX_bookings(filename, sheetname, start_row):
                                     'Q2 2021':'Q2_2021',
                                     'Q3 2021':'Q3_2021',
                                     'Q4 2021':'Q4_2021'})
+    # Enterprise is the superset here and all other MPC ('segment') items are subsets
+    df_DX = df_DX[df_DX['segment']=='Enterprise']
 
     df_DX = df_DX.drop(columns = ['segment', '2021'])
 
@@ -978,10 +980,6 @@ def load_DX_bookings(filename, sheetname, start_row):
     # filter to just include market area
     df_DX = df_DX[df_DX['in_parens']=='MA'].copy()
 
-
-    # Adding BU and Segment information (all Exp Cloud)
-    # THIS WAS WHERE THE ERROR WAS
-    #df_DX['segment'] = 'Digital Experience'
     df_DX['BU'] = 'Experience Cloud'
 
     # drop unnecessary columns and reorder the columns
@@ -1025,7 +1023,7 @@ def build_deferred_waterfall(df_billings):
     v_un_BU, v_un_curr = find_unique_curr_and_BU(df_billings)
 
     # creating the waterfall list of numeric columns
-    wf_columns = ["Total"]
+    wf_columns = []
     for i in np.arange(36):
         this_column = "p_" + str(i + 1)
         wf_columns.append(this_column)
@@ -2698,3 +2696,14 @@ def configure_df_fcst(df_billings, df_cal, config_dict):
     df_fcst.drop(["period_match"], axis=1, inplace=True)
 
     return df_fcst
+
+
+def add_Adobe_waterfall_totals(df_wf):
+    df_totals = df_wf.sum(level=1, axis=0)
+    df_totals = pd.concat([df_totals], keys=['Adobe'], names=['BU'])
+    df_wf = pd.concat([df_wf, df_totals])
+
+    df_wf["Balance"] = df_wf[df_wf.columns[:]].sum(axis=1)
+    df_wf = df_wf.sort_index(axis=1)
+
+    return df_wf

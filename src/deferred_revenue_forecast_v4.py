@@ -302,12 +302,6 @@ dict_BU_map = config_dict['bookings_BU_mapping']
 for key, value in dict_BU_map.items():
     df_wf["BU"] = df_wf["BU"].str.replace(key, value)
 
-#df_wf["BU"] = df_wf["BU"].str.replace("Creative", "Digital Media")
-#df_wf["BU"] = df_wf["BU"].str.replace("Document Cloud", "Digital Media")
-#df_wf["BU"] = df_wf["BU"].str.replace("DX Other", "Digital Experience")
-#df_wf["BU"] = df_wf["BU"].str.replace("Experience Cloud", "Digital Experience")
-#df_wf["BU"] = df_wf["BU"].str.replace("Print & Publishing", "Publishing")
-
 # The df_wf contains USD equivalent amounts but is still in DC groupings
 # # I need to groupby BU and Period
 
@@ -327,7 +321,7 @@ df_wf_init = df_wf_init.drop("As Performed / Upon Acceptance", axis=1)
 
 # Changing the periods in the df_wf_gb to match the df_wf_init first
 old_cols = df_wf.columns
-old_cols = old_cols[3:]
+old_cols = old_cols[2:]
 
 new_columns = []
 for i in range(12 * 3):
@@ -387,7 +381,6 @@ df_wf_init.sort_values(by=["BU", "period"], inplace=True)
 
 # ## Now move the waterfall forward by BU
 df_wf_init = bring_initial_wf_forward(df_wf_init)
-
 df_wf_init = df_wf_init.set_index(["BU", "period"])
 
 df_wf = df_wf.set_index(["BU", "period"])
@@ -397,6 +390,18 @@ df_all = df_wf_init.add(df_wf, fill_value=0)
 df_wf_init = df_wf_init.sort_index()
 df_all = df_all.sort_index()
 df_wf = df_wf.sort_index()
+
+# adding totals by period and totals for Adobe
+df_wf_init = add_Adobe_waterfall_totals(df_wf_init)
+df_wf = add_Adobe_waterfall_totals(df_wf)
+df_all = add_Adobe_waterfall_totals(df_all)
+
+# Here we are going to create a balance total for all of the dataframes (df_wf_init, df_all, df_wf)
+# Then create a total for Adobe
+# Then add as performed?
+
+# adding the total and sorting columns to initial waterfall
+
 
 # #### Sending this data over to excel as a check
 #with pd.ExcelWriter("/Volumes/Treasury/Financial_Database/Deferred_Revenue/Inputs/Data_2021_p03/processed/final/output.xlsx") as writer:
@@ -409,11 +414,6 @@ with pd.ExcelWriter(config_dict['output_dir']['final']+"output.xlsx") as writer:
 
 
 # Add the as performed back into the waterfall forecast
-df_all["Total"] = df_all[df_all.columns[:-1]].sum(axis=1)
-
-df_wf_init["Total"] = df_wf_init[df_wf_init.columns[:]].sum(axis=1)
-
-df_wf["Total"] = df_wf[df_wf.columns[1:]].sum(axis=1)
 
 # Need to add these back to our model dictionary
 # At this point I dont recall what it was called and will need to change it
