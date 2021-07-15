@@ -117,5 +117,19 @@
         "list_3yrs": [
             "Y7"
         ]
+    },
+    "export_billings": {
+        "curr_list" : [
+            "AUD",
+            "EUR",
+            "GBP",
+            "JPY"
+        ],
+        "df_list": [
+            "AUD_hist",
+            "EUR_hist",
+            "GBP_hist",
+            "JPY_hist"
+        ]
     }
 }

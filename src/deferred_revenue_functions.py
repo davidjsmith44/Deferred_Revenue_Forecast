@@ -2707,3 +2707,57 @@ def add_Adobe_waterfall_totals(df_wf):
     df_wf = df_wf.sort_index(axis=1)
 
     return df_wf
+
+def build_one_curr_history(this_curr, df):
+    this_curr_df = df[df['curr']==this_curr].copy()
+    list_to_drop = ['curr', 'Period_Weeks', '_merge', 'is_forecast', 'r_squared', 'intercept', 'coeff', 'X_length']
+    for col in this_curr_df.columns:
+        if '_US' in col:
+            list_to_drop.append(col)
+    this_curr_df['deferred_1Y_DC'] = this_curr_df['deferred_1Y_DC'] + this_curr_df['book_1Y_DC']
+
+    this_curr_df = this_curr_df[['period', 'is_forecast', 'deferred_3Y_DC', 'deferred_2Y_DC', 'deferred_1Y_DC',
+                'deferred_6M_DC', 'deferred_3M_DC', 'deferred_1M_DC',
+            'service_DC', 'recognized_DC']]
+    this_curr_df['Total_Billings'] = this_curr_df.sum(axis=1)
+    this_curr_df['To_Revenue_in_1M_$'] = this_curr_df['deferred_1M_DC'] + this_curr_df['service_DC'] + this_curr_df['recognized_DC']
+
+    this_curr_df['To_Revenue_in_1M_%'] = this_curr_df['To_Revenue_in_1M_$'] / this_curr_df['Total_Billings']
+    this_curr_df['To_Revenue_in_1Y_%'] = this_curr_df['deferred_1Y_DC'] / this_curr_df['Total_Billings']
+    return this_curr_df
+
+def export_billings_forecast(df, config_dict):
+    '''
+    This program creates the billings forecast that FX uses for hedging.
+    The historical and forecast of billings for AUD, EUR, GBP and JPY are
+    sent to excel, each as a different sheet
+    :param df: a dataframe containing all historical and forecasted billings
+    :param config_dict: The main config dictionary for the deferred revenue function
+                        that contains currencies and tab names for the output
+    :return:
+
+    '''
+    df = df.groupby(['curr', 'period'], as_index=False).sum().copy()
+
+    curr_list = config_dict["export_billings"]["curr_list"]
+    df_list = config_dict["export_billings"]["df_list"]
+
+    for i in range(len(curr_list)):
+        df_list[i] = build_one_curr_history(curr_list[i], df)
+        df_list[i].set_index('period', inplace=True)
+
+    this_path = config_dict["output_dir"]["final"]
+    this_file = config_dict["output_filenames"]["billings_fcst"]
+    filename_and_path = this_path + this_file
+
+    with pd.ExcelWriter(filename_and_path) as writer:
+        for i in range(len(curr_list)):
+            print(curr_list[i])
+            this_fcst_sheetname = curr_list[i] + '_fcst'
+            df_list[i].to_excel(writer, sheet_name=curr_list[i], startrow=4, startcol=1, header=True)
+
+    writer.save()
+
+    return_string = 'FX Billings Completed'
+
+    return return_string

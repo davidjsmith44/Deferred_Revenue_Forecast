@@ -51,6 +51,10 @@
         "intermediate": "../Data/Data_2021_p06/processed/intermediate/",
         "final": "../Data/Data_2021_p06/processed/final/"
     },
+    "output_filenames": {
+        "deferred": "deferred_waterfall.xlsx",
+        "billings_fcst": "FOREIGN_CURRENCY_BILLINGS.xlsx"
+    },
     "deferred_workbook": {
         "filename": "Q2'21 Rev Acctg Mgmt Workbook.xlsx",
         "sheetname": "Deferred Revenue Forecast",

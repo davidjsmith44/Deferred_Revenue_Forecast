@@ -39,7 +39,7 @@ from scipy.interpolate import interp1d, griddata
 import json
 from deferred_revenue_functions import *
 
-#from src.deferred_revenue_functions import classify_no_POB
+# from src.deferred_revenue_functions import classify_no_POB
 
 plt.style.use("ggplot")
 
@@ -448,5 +448,9 @@ input_df_dict = {
 }
 
 pickle.dump(input_df_dict, open(config_dict['output_dir']['final']+'final_forecast3.p', "wb"))
+
+#Creating the billings forecast for FX
+test_string = export_billings_forecast(df, config_dict)
+print(test_string)
 
 
